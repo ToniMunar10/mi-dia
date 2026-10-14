@@ -387,6 +387,11 @@ button.itb{cursor:pointer}
 section{gap:14px!important}
 .s-nada{--cell:#F7F1EC!important}
 .cell.s-nada .cn{opacity:.5}
+.rstats{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:4px 0 6px}
+.rstats > div{background:var(--gym-soft);border-radius:12px;padding:9px 6px;display:grid;justify-items:center;text-align:center}
+.rstats b{font:700 1.25rem var(--display);color:var(--gym);font-variant-numeric:tabular-nums}
+.rstats small{font-size:.7rem;color:var(--gym);font-weight:700;line-height:1.2}
+.resumen .rh{font:700 .9rem var(--display);margin:12px 0 4px}
 .sport{height:.85em;width:auto;vertical-align:-.05em;display:inline-block}
 .ev .k .sport{height:1.05em;vertical-align:-.2em}
 .empty{text-align:center;padding:40px 16px;color:var(--onbg-muted)}
@@ -846,7 +851,7 @@ section{gap:14px!important}
       <p class="tip">Copia tus series, peso y comidas de los últimos 14 días y pégalo en el chat.</p>
       <button class="btn primary big" id="copyClaude" style="margin-top:10px">📋 Copiar para Claude</button><div class="saved" id="copyMsg"></div>
       <textarea id="copyBox" class="copybox" readonly hidden></textarea></div>`;
-    $("#view").innerHTML = `<section>${pesoCard}${semCard}${exCard}${ghCard()}${gh.token?"":sendCard}${pend}</section>`;
+    $("#view").innerHTML = `<section>${resumenCard()}${pesoCard}${semCard}${exCard}${ghCard()}${gh.token?"":sendCard}${pend}</section>`;
   }
   /* ---------- GitHub sync of workout logs ---------- */
   const GH = {owner:"ToniMunar10", repo:"mi-dia", branch:"datos", path:"entrenos.json"};
@@ -868,7 +873,7 @@ section{gap:14px!important}
   }
   async function ghPull(){
     if (!gh.token || !navigator.onLine) return;
-    try { const {data} = await ghGet(); mergeRemoteLogs(data.registros); gh.err = "" } catch(e){ gh.err = e.message }
+    try { const {data} = await ghGet(); mergeRemoteLogs(data.registros, data.comidas); gh.err = "" } catch(e){ gh.err = e.message }
     if (tab === "prog") softRender();
   }
   async function ghPush(){
@@ -881,7 +886,8 @@ section{gap:14px!important}
         const regs = Object.assign({}, data.registros || {});
         const loc = (window.__miDiaLocal && window.__miDiaLocal.registros) || {};
         Object.entries(loc).forEach(([id, d]) => { if (d == null) delete regs[id]; else regs[id] = d });
-        const body = {message:"Entrenos " + todayIso(), branch:GH.branch, content:b64(JSON.stringify({actualizado:new Date().toISOString(), registros:regs}, null, 1))};
+        const coms = Object.assign({}, data.comidas || {}, (window.__miDiaLocal && window.__miDiaLocal.hechas) || {});
+        const body = {message:"Entrenos y comidas " + todayIso(), branch:GH.branch, content:b64(JSON.stringify({actualizado:new Date().toISOString(), registros:regs, comidas:coms}, null, 1))};
         if (sha) body.sha = sha;
         const r = await ghApi(`contents/${GH.path}`, {method:"PUT", body:JSON.stringify(body)});
         if (r.status === 409 || r.status === 422) continue;   // someone wrote meanwhile: read again and retry once
@@ -906,13 +912,23 @@ section{gap:14px!important}
   function ghCard(){
     const hhmm = iso => { const d = new Date(iso); return isNaN(d) ? "" : shortDate(isoOf(d)) + " " + pad(d.getHours()) + ":" + pad(d.getMinutes()) };
     if (!gh.token) return `<div class="card"><h2><span><span class="em">🔗</span> Conectar con Claude</span></h2>
-      <p class="tip">Pega aquí la clave de GitHub que te he explicado en el chat. Tus series se subirán solas y Claude las verá.</p>
+      <p class="tip">Pega aquí la clave de GitHub que te he explicado en el chat. Tus series y comidas se subirán solas y Claude las verá.</p>
       <div class="pin"><input id="ghTok" type="password" autocomplete="off" placeholder="github_pat_…" aria-label="Clave de GitHub"><button class="btn primary" id="ghSave">Conectar</button></div>
       <div class="saved" id="ghMsg">${esc(gh.err)}</div></div>`;
     const st = gh.err ? `<span class="cpill">⚠️ ${esc(gh.err)}</span>` : gh.pending ? `<span class="cpill">⏳ Pendiente de subir</span>` : `<span class="cpill">✅ Al día${gh.last?" · "+esc(hhmm(gh.last)):""}</span>`;
     return `<div class="card"><h2><span><span class="em">🔗</span> Conectado con Claude</span></h2>
       <div class="mc" style="display:flex;gap:6px;flex-wrap:wrap">${st}</div>
       <div class="btns" style="margin-top:10px"><button class="btn ghost" id="ghNow">Subir ahora</button><button class="btn ghost" id="ghOff" style="margin-left:auto">Desconectar</button></div></div>`;
+  }
+  function resumenCard(){
+    const r = plan && plan.resumenSemanal;
+    if (!r) return "";
+    const li = a => (a||[]).map(x => `<li>${esc(x)}</li>`).join("");
+    return `<div class="card resumen"><h2><span><span class="em">🗓️</span> Revisión semanal</span><small>${esc(r.semana||"")}</small></h2>
+      ${(r.cifras||[]).length?`<div class="rstats">${r.cifras.map(c=>`<div><b>${esc(c.valor)}</b><small>${esc(c.etiqueta)}</small></div>`).join("")}</div>`:""}
+      ${(r.bien||[]).length?`<div class="rh">👍 Bien</div><ul class="plain">${li(r.bien)}</ul>`:""}
+      ${(r.mejorar||[]).length?`<div class="rh">🎯 A mejorar</div><ul class="plain">${li(r.mejorar)}</ul>`:""}
+      ${(r.cambios||[]).length?`<div class="rh">🔧 Cambios para esta semana</div><ul class="plain">${li(r.cambios)}</ul>`:""}</div>`;
   }
   function claudeText(){
     const from = new Date(); from.setDate(from.getDate()-14); const f = isoOf(from);
@@ -1097,7 +1113,7 @@ section{gap:14px!important}
         const [c, id] = path.split("/");
         return {
           onSnapshot(fn){ if (path === "info/plan"){ planL.push(fn); fn(planSnap()) } return ()=>{} },
-          async set(data){ local[c] = local[c] || {}; local[c][id] = data; saveLocal(); emit(c); if (c === "registros") ghDirty() },
+          async set(data){ local[c] = local[c] || {}; local[c][id] = data; saveLocal(); emit(c); if (c === "registros" || c === "hechas") ghDirty() },
           async update(data){ if (c === "compra"){ local.marcas[id] = Object.assign({}, local.marcas[id], data.marcados); saveLocal(); emit(c) } },
           async delete(){ local[c] = local[c] || {}; local[c][id] = null; saveLocal(); emit(c); if (c === "registros") ghDirty() }
         };
@@ -1106,8 +1122,10 @@ section{gap:14px!important}
     dbRef = db;
     window.__miDiaLocal = local;
     // logs coming back from GitHub (new phone / reinstall): fill in what this phone doesn't have
-    mergeRemoteLogs = regs => {
-      let n = 0;
+    mergeRemoteLogs = (regs, coms) => {
+      let n = 0, m = 0;
+      Object.entries(coms || {}).forEach(([id, d]) => { if (!(id in local.hechas)) { local.hechas[id] = d; m++ } });
+      if (m){ saveLocal(); emit("hechas") }
       Object.entries(regs || {}).forEach(([id, d]) => { if (!(id in local.registros) && !(remote && remote.registros && remote.registros[id])) { local.registros[id] = d; n++ } });
       if (n){ saveLocal(); emit("registros") }
     };
