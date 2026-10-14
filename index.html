@@ -407,6 +407,19 @@ nav.tabs button{font-size:.85rem!important;padding:9px 2px!important}
 .fsum b{font:700 1.05rem var(--display)} .fsum small{display:block;font-size:.72rem;font-weight:700}
 .fpick .chips{margin-top:8px}
 .chip.pickc{border:1.5px solid var(--line);background:var(--surface);color:var(--ink);cursor:pointer;font:700 .9rem var(--body);padding:8px 12px}
+.pvr{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px}
+.pvr > div{border-radius:12px;padding:9px 10px;background:#F4EEE9;display:grid;justify-items:center;text-align:center}
+.pvr b{font:700 1.5rem var(--display);font-variant-numeric:tabular-nums}
+.pvr small{font-size:.72rem;color:var(--muted);font-weight:700}
+.pvr .ok{background:var(--rest-soft)} .pvr .ok b{color:var(--rest)}
+.pvr .up{background:var(--gym-soft)} .pvr .up b{color:var(--gym)}
+.pvr .down{background:#FFF1C2} .pvr .down b{color:#7A5A00}
+.fnota{display:block;font-size:.8rem;color:var(--ink);margin-top:2px}
+.picoteo{padding:10px 12px!important}
+.picoteo .btn{width:100%}
+.pvr .nores b{color:var(--muted)}
+table.ing{font-size:.88rem}
+table.ing td.g{white-space:normal!important;min-width:70px}
 .sport{height:.85em;width:auto;vertical-align:-.05em;display:inline-block}
 .ev .k .sport{height:1.05em;vertical-align:-.2em}
 .empty{text-align:center;padding:40px 16px;color:var(--onbg-muted)}
@@ -581,7 +594,7 @@ nav.tabs button{font-size:.85rem!important;padding:9px 2px!important}
     else if (tab === "prog") H("Progreso", "Tu peso y tus marcas");
     else H("Informe semanal", "Cada domingo por la noche");
     document.querySelectorAll("nav.tabs button").forEach(b=> b.setAttribute("aria-selected", b.id === "tab-"+tab ? "true":"false"));
-    $("#foot").textContent = (plan && plan.actualizado ? "Plan actualizado: " + plan.actualizado + " · " : "") + "App v6";
+    $("#foot").textContent = (plan && plan.actualizado ? "Plan actualizado: " + plan.actualizado + " · " : "") + "App v7";
   }
   function renderWeek(){
     const el = $("#week"), nav = $("#wnav");
@@ -610,7 +623,8 @@ nav.tabs button{font-size:.85rem!important;padding:9px 2px!important}
   function timelineOf(d){
     const ev = [], eaten = eatenOf(sel);
     (d.comidas||[]).forEach((c,i) => ev.push({h:c.hora, k:"food", meal:i, eaten:!!eaten[i],
-      icon:`<span class="em">${(recetaOf(c)||{}).icono||"🍽️"}</span>`, lab:c.nombre, n:mealTitle(c), tup:/^Tupper/i.test(c.titulo||""), pill:mealKcal(c), open:"meal:"+i}));
+      icon:`<span class="em">${(recetaOf(c)||{}).icono||"🍽️"}</span>`, lab:c.nombre, n:mealTitle(c), tup:/^Tupper/i.test(c.titulo||""),
+      pill: (() => { const rk = realKcal(sel, i); return rk ? "📷 " + Math.round(rk.kcal) : (fotosDe(sel, i).length ? "📷 " : "") + mealKcal(c) })(), open:"meal:"+i}));
     if (d.gym && d.gym.hora){
       const exs = d.gym.ejercicios||[], done = exs.filter(x => registros.some(r => r.id === sel+"_"+x.id)).length;
       ev.push({h:d.gym.hora, k:"gym", icon:DUMB, lab:"Gym", n:d.gym.titulo, pill:`${done}/${exs.length}`, gym:true, open:"gym"});
@@ -643,7 +657,8 @@ nav.tabs button{font-size:.85rem!important;padding:9px 2px!important}
       t2 = `<button class="tile gym" data-open="gym"><span class="ti">${done===exs.length&&exs.length?'<span class="em">✅</span>':DUMB}</span><b>${esc(d.gym.titulo)}</b><small>${done}/${exs.length} ejercicios</small></button>`;
     } else t2 = `<div class="tile"><span class="ti em">${actIcon(d.actividad||d.titulo)||"😴"}</span><b>${esc((d.actividad||"Descanso").replace(/\s*\(.*?\)/,"").replace(/\s\d{1,2}:\d{2}$/,"").replace("Viaje a Galicia","Galicia"))}</b></div>`;
     const plan_k = (d.comidas||[]).reduce((s,c)=> s + mealKcal(c), 0), eaten = eatenOf(sel);
-    const eat_k = (d.comidas||[]).reduce((s,c,i)=> s + (eaten[i] ? mealKcal(c) : 0), 0);
+    const eat_k = (d.comidas||[]).reduce((s,c,i)=> { const rk = realKcal(sel, i); return s + (eaten[i] ? (rk ? rk.kcal : mealKcal(c)) : 0) }, 0)
+      + fotosDe(sel, null).reduce((s,f)=> s + (f.a && f.a.kcal != null ? Number(f.a.kcal) : 0), 0);
     const t3 = plan_k ? `<div class="tile kc"><span class="ti em">🍽️</span><b>${(eat_k||plan_k).toLocaleString("es-ES")}</b><small>${eat_k?`de ${plan_k.toLocaleString("es-ES")} kcal`:"kcal"}</small>${eat_k?`<span class="mprog"><i style="width:${Math.min(100,Math.round(eat_k/plan_k*100))}%"></i></span>`:""}</div>`
       : `<div class="tile"><span class="ti em">🍽️</span><b>Libre</b><small>comidas</small></div>`;
 
@@ -663,7 +678,7 @@ nav.tabs button{font-size:.85rem!important;padding:9px 2px!important}
     const notas = (d.notas||[]).length ? `<details class="card tips"><summary><span class="em">💡</span> Consejos <span class="pill">${d.notas.length}</span></summary><ul class="plain" style="margin-top:10px">${d.notas.map(n=>`<li>${esc(n)}</li>`).join("")}</ul></details>` : "";
     $("#view").innerHTML = `<section><div class="tiles">${t1}${t2}${t3}</div>
       <div class="tl">${evHtml || '<p class="tip">Sin horas fijadas.</p>'}</div>
-      ${(d.comidas||[]).length?'<p class="hint">Toca el dibujo de una comida para marcarla como hecha</p>':""}${fotoCard(d)}${notas}</section>`;
+      ${(d.comidas||[]).length?'<p class="hint">Toca el dibujo de una comida para marcarla como hecha</p>':""}${picoteoCard()}${notas}</section>`;
   }
   async function toggleEat(i){
     if (!dbRef) return;
@@ -770,14 +785,14 @@ nav.tabs button{font-size:.85rem!important;padding:9px 2px!important}
     if (r){
       const t = totals(r);
       const rows = r.ingredientes.map(i=>`<tr><td>${esc(i.n)}</td><td class="g">${esc(i.g)}</td><td class="kc">${Math.round(i.kcal)}</td><td class="p">${fmt(i.p)} g</td></tr>`).join("");
-      body = `<div class="macros"><div class="macro"><b>${Math.round(t.kcal)}</b><span>kcal</span></div><div class="macro"><b>${Math.round(t.p)} g</b><span>proteína</span></div></div>
-        <div class="card"><h2><span><span class="em">${r.icono||"🍽️"}</span> Ingredientes</span> <small>en crudo</small></h2>
+      body = `<div class="card"><h2><span><span class="em">${r.icono||"🍽️"}</span> Ingredientes</span> <small>en crudo</small></h2>
         <div style="overflow-x:auto"><table class="ing"><thead><tr><th></th><th></th><th>kcal</th><th>prot</th></tr></thead>
         <tbody>${rows}</tbody><tfoot><tr><td>Total</td><td></td><td class="kc">${Math.round(t.kcal)}</td><td class="p">${Math.round(t.p)} g</td></tr></tfoot></table></div></div>
         ${r.pasos&&r.pasos.length?`<details class="card tec"><summary><span class="em">👨‍🍳</span><b>Cómo hacerlo</b><span class="go" aria-hidden="true">›</span></summary><ol class="plain" style="margin-top:10px;padding-left:20px">${r.pasos.map(p=>`<li>${esc(p)}</li>`).join("")}</ol></details>`:""}`;
     } else body = `<div class="card"><p class="tip">${esc(c.detalle || "Sin detalle.")}</p></div>`;
     $("#view").innerHTML = `<section>
       <button class="btn big ${eaten?"eatenb":"primary food"}" data-eat="${detail.i}">${eaten?"✓ Hecha · desmarcar":"✓ Marcar como hecha"}</button>
+      ${platoCard(detail.i)}
       ${body}</section>`;
   }
   function renderCompraDetail(){
@@ -912,7 +927,8 @@ nav.tabs button{font-size:.85rem!important;padding:9px 2px!important}
       const data = await shrink(file), now = new Date();
       const id = `${sel}_${pad(now.getHours())}${pad(now.getMinutes())}${pad(now.getSeconds())}_${foto.comida == null ? "x" : "m"+foto.comida}`;
       foto.cola.push({id, fecha:sel, comida:foto.comida, hora:pad(now.getHours())+":"+pad(now.getMinutes()), data});
-      foto.pick = false; foto.msg = ""; saveFotos(); render();
+      foto.pick = false; foto.msg = ""; saveFotos();
+      if (foto.comida != null && !eatenOf(sel)[foto.comida]) await toggleEat(foto.comida); else render();
       fotosPush();
     } catch(e){ foto.msg = e.message; render() }
   }
@@ -948,6 +964,40 @@ nav.tabs button{font-size:.85rem!important;padding:9px 2px!important}
       foto.analisis = data.fotos || {}; store.set("mi-dia-fotos-analisis", foto.analisis);
       if (tab === "hoy") softRender();
     } catch(e){}
+  }
+  function fotosDe(fecha, comida){
+    const out = [...foto.subidas.filter(f => f.fecha === fecha), ...foto.cola.filter(f => f.fecha === fecha).map(f => Object.assign({}, f, {pend:true}))];
+    Object.entries(foto.analisis).forEach(([id, a]) => { if (a.fecha === fecha && !out.some(m => m.id === id)) out.push({id, fecha:a.fecha, comida:a.comida, hora:a.hora}) });
+    return out.filter(f => (f.comida ?? null) === (comida ?? null)).map(f => Object.assign(f, {a: foto.analisis[f.id]})).sort((x,y) => (x.hora||"").localeCompare(y.hora||""));
+  }
+  function realKcal(fecha, i){
+    const fs = fotosDe(fecha, i).filter(f => f.a && f.a.kcal != null);
+    return fs.length ? {kcal: fs.reduce((s,f)=> s + Number(f.a.kcal), 0), p: fs.reduce((s,f)=> s + (Number(f.a.p)||0), 0)} : null;
+  }
+  // everything about one meal in one card: photo, analysis, plan vs real
+  function platoCard(i){
+    const c = days[sel].comidas[i], r = recetaOf(c), plan = r ? totals(r) : {kcal:Number(c.kcal)||0, p:0};
+    const fs = fotosDe(sel, i), real = realKcal(sel, i);
+    const cmp = `<div class="pvr"><div><small>Plan</small><b>${Math.round(plan.kcal)}</b><small>kcal · ${Math.round(plan.p)} g prot</small></div>
+        ${real ? `<div class="${real.kcal > plan.kcal*1.15 ? "up" : real.kcal < plan.kcal*0.85 ? "down" : "ok"}"><small>Real</small><b>${Math.round(real.kcal)}</b><small>kcal · ${Math.round(real.p)} g prot</small></div>`
+          : `<div class="nores"><small>Real</small><b>—</b><small>${fs.length ? "esta noche" : "haz una foto"}</small></div>`}</div>`;
+    const list = fs.map(f => f.a
+      ? `<div class="frow"><span class="fic em">📷</span><div style="min-width:0"><div class="rn">${esc(f.hora||"")}</div><span class="fdesc">${esc(f.a.descripcion||"")}</span>
+          <span class="fmac">${f.a.p!=null?`P ${Math.round(f.a.p)} g`:""}${f.a.hc!=null?` · HC ${Math.round(f.a.hc)} g`:""}${f.a.g!=null?` · G ${Math.round(f.a.g)} g`:""}</span>${f.a.nota?`<span class="fnota">💬 ${esc(f.a.nota)}</span>`:""}</div>${f.a.kcal!=null?`<span class="pill fk">${Math.round(f.a.kcal)}</span>`:"<span></span>"}</div>`
+      : `<div class="frow"><span class="fic em">📷</span><div><div class="rn">${esc(f.hora||"")}</div><span class="fst">${f.pend?"⏳ Pendiente de subir":"🌙 Se analiza esta noche"}</span></div><span></span></div>`).join("");
+    const btn = !gh.token ? `<p class="tip">Para subir fotos, conecta antes la app en Progreso → 🔗 Conectar con Claude.</p>`
+      : `<button class="btn ${fs.length?"ghost":"primary food"} big" data-fcomida="${i}">📷 ${fs.length?"Añadir otra foto":"Hacer foto del plato"}</button>`;
+    return `<div class="card plato"><h2><span><span class="em">📷</span> Tu plato</span>${foto.cola.length&&foto.busy?"<small>Subiendo…</small>":""}</h2>
+      ${cmp}${list?`<div class="frows">${list}</div>`:'<p class="tip">Haz una foto de lo que te vas a comer y esta noche te digo cuánto has comido de verdad.</p>'}
+      ${btn}${foto.msg?`<div class="saved">${esc(foto.msg)}</div>`:""}</div>`;
+  }
+  // only snacks outside the plan stay on the day screen
+  function picoteoCard(){
+    const fs = fotosDe(sel, null);
+    if (!gh.token && !fs.length) return "";
+    const rows = fs.map(f => `<div class="frow"><span class="fic em">🍪</span><div style="min-width:0"><div class="rn">${esc(f.hora||"")}${f.a&&f.a.descripcion?" · "+esc(f.a.descripcion):""}</div>
+      ${f.a?`<span class="fmac">${f.a.p!=null?`P ${Math.round(f.a.p)} g`:""}</span>`:`<span class="fst">${f.pend?"⏳ Pendiente de subir":"🌙 Se analiza esta noche"}</span>`}</div>${f.a&&f.a.kcal!=null?`<span class="pill fk">${Math.round(f.a.kcal)}</span>`:"<span></span>"}</div>`).join("");
+    return `<div class="card picoteo">${rows?`<div class="frows">${rows}</div>`:""}${gh.token?`<button class="btn ghost" data-fcomida="x">🍪 Foto de un picoteo</button>`:""}</div>`;
   }
   function fotoCard(d){
     const comidas = d.comidas || [];
