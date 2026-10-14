@@ -846,7 +846,73 @@ section{gap:14px!important}
       <p class="tip">Copia tus series, peso y comidas de los últimos 14 días y pégalo en el chat.</p>
       <button class="btn primary big" id="copyClaude" style="margin-top:10px">📋 Copiar para Claude</button><div class="saved" id="copyMsg"></div>
       <textarea id="copyBox" class="copybox" readonly hidden></textarea></div>`;
-    $("#view").innerHTML = `<section>${pesoCard}${semCard}${exCard}${sendCard}${pend}</section>`;
+    $("#view").innerHTML = `<section>${pesoCard}${semCard}${exCard}${ghCard()}${gh.token?"":sendCard}${pend}</section>`;
+  }
+  /* ---------- GitHub sync of workout logs ---------- */
+  const GH = {owner:"ToniMunar10", repo:"mi-dia", branch:"datos", path:"entrenos.json"};
+  const gh = { token: store.get("mi-dia-gh-token") || "", pending: !!store.get("mi-dia-gh-pending"), last: store.get("mi-dia-gh-last") || "", err: "", busy: false, timer: null };
+  let mergeRemoteLogs = () => {};
+  const ghApi = (path, opts={}) => fetch(`https://api.github.com/repos/${GH.owner}/${GH.repo}/${path}`, Object.assign({}, opts, {headers: Object.assign({"Accept":"application/vnd.github+json","Authorization":"Bearer "+gh.token,"X-GitHub-Api-Version":"2022-11-28"}, opts.headers||{})}));
+  const b64 = str => btoa(unescape(encodeURIComponent(str)));
+  const unb64 = str => decodeURIComponent(escape(atob(str.replace(/\n/g,""))));
+  function ghDirty(){
+    gh.pending = true; store.set("mi-dia-gh-pending", true);
+    clearTimeout(gh.timer); gh.timer = setTimeout(ghPush, 45000);   // one upload after a pause, not one per set
+  }
+  async function ghGet(){
+    const r = await ghApi(`contents/${GH.path}?ref=${GH.branch}`, {cache:"no-store"});
+    if (r.status === 404) return {sha:null, data:{registros:{}}};
+    if (!r.ok) throw new Error(r.status === 401 ? "La clave no es válida o ha caducado" : r.status === 403 ? "La clave no tiene permiso de escritura" : "Error " + r.status);
+    const j = await r.json();
+    return {sha:j.sha, data: JSON.parse(unb64(j.content))};
+  }
+  async function ghPull(){
+    if (!gh.token || !navigator.onLine) return;
+    try { const {data} = await ghGet(); mergeRemoteLogs(data.registros); gh.err = "" } catch(e){ gh.err = e.message }
+    if (tab === "prog") softRender();
+  }
+  async function ghPush(){
+    clearTimeout(gh.timer);
+    if (!gh.token || gh.busy || !navigator.onLine) return;
+    gh.busy = true;
+    try {
+      for (let attempt = 0; attempt < 2; attempt++){
+        const {sha, data} = await ghGet();
+        const regs = Object.assign({}, data.registros || {});
+        const loc = (window.__miDiaLocal && window.__miDiaLocal.registros) || {};
+        Object.entries(loc).forEach(([id, d]) => { if (d == null) delete regs[id]; else regs[id] = d });
+        const body = {message:"Entrenos " + todayIso(), branch:GH.branch, content:b64(JSON.stringify({actualizado:new Date().toISOString(), registros:regs}, null, 1))};
+        if (sha) body.sha = sha;
+        const r = await ghApi(`contents/${GH.path}`, {method:"PUT", body:JSON.stringify(body)});
+        if (r.status === 409 || r.status === 422) continue;   // someone wrote meanwhile: read again and retry once
+        if (!r.ok) throw new Error(r.status === 401 ? "La clave no es válida o ha caducado" : r.status === 403 || r.status === 404 ? "La clave no tiene permiso de escritura en mi-dia" : "Error " + r.status);
+        gh.pending = false; store.set("mi-dia-gh-pending", false);
+        gh.last = new Date().toISOString(); store.set("mi-dia-gh-last", gh.last); gh.err = "";
+        break;
+      }
+    } catch(e){ gh.err = e.message || "Sin conexión" }
+    gh.busy = false;
+    if (tab === "prog") softRender();
+  }
+  async function ghConnect(){
+    const v = ($("#ghTok").value || "").trim();
+    if (!v){ $("#ghTok").focus(); return }
+    gh.token = v; store.set("mi-dia-gh-token", v); gh.err = "";
+    const msg = $("#ghMsg"); if (msg) msg.textContent = "Comprobando…";
+    try { await ghGet(); gh.pending = true; store.set("mi-dia-gh-pending", true); await ghPush(); await ghPull() }
+    catch(e){ gh.err = e.message }
+    render();
+  }
+  function ghCard(){
+    const hhmm = iso => { const d = new Date(iso); return isNaN(d) ? "" : shortDate(isoOf(d)) + " " + pad(d.getHours()) + ":" + pad(d.getMinutes()) };
+    if (!gh.token) return `<div class="card"><h2><span><span class="em">🔗</span> Conectar con Claude</span></h2>
+      <p class="tip">Pega aquí la clave de GitHub que te he explicado en el chat. Tus series se subirán solas y Claude las verá.</p>
+      <div class="pin"><input id="ghTok" type="password" autocomplete="off" placeholder="github_pat_…" aria-label="Clave de GitHub"><button class="btn primary" id="ghSave">Conectar</button></div>
+      <div class="saved" id="ghMsg">${esc(gh.err)}</div></div>`;
+    const st = gh.err ? `<span class="cpill">⚠️ ${esc(gh.err)}</span>` : gh.pending ? `<span class="cpill">⏳ Pendiente de subir</span>` : `<span class="cpill">✅ Al día${gh.last?" · "+esc(hhmm(gh.last)):""}</span>`;
+    return `<div class="card"><h2><span><span class="em">🔗</span> Conectado con Claude</span></h2>
+      <div class="mc" style="display:flex;gap:6px;flex-wrap:wrap">${st}</div>
+      <div class="btns" style="margin-top:10px"><button class="btn ghost" id="ghNow">Subir ahora</button><button class="btn ghost" id="ghOff" style="margin-left:auto">Desconectar</button></div></div>`;
   }
   function claudeText(){
     const from = new Date(); from.setDate(from.getDate()-14); const f = isoOf(from);
@@ -895,7 +961,7 @@ section{gap:14px!important}
   }
   function softRender(){
     const a = document.activeElement;
-    if (a && a.tagName === "INPUT" && (a.dataset.set !== undefined || a.id === "pesoIn")) return;
+    if (a && a.tagName === "INPUT" && (a.dataset.set !== undefined || a.id === "pesoIn" || a.id === "ghTok")) return;
     render();
   }
   function go(newDetail){ detail = newDetail; render(); window.scrollTo(0,0) }
@@ -970,6 +1036,9 @@ section{gap:14px!important}
     if (e.target.closest("#addSet")){ const L = detail.draft[detail.draft.length-1] || {kg:"",reps:""}; detail.draft.push({kg:L.kg, reps:L.reps, ok:false}); render(); return }
     if (e.target.closest("#pesoSave")){ savePeso(); return }
     if (e.target.closest("#copyClaude")){ copyForClaude(); return }
+    if (e.target.closest("#ghSave")){ ghConnect(); return }
+    if (e.target.closest("#ghNow")){ gh.pending = true; ghPush(); return }
+    if (e.target.closest("#ghOff")){ gh.token = ""; store.set("mi-dia-gh-token", ""); gh.err = ""; render(); return }
     const so = e.target.closest("[data-setok]"); if (so){ toggleSet(Number(so.dataset.setok)); return }
     const eat = e.target.closest("[data-eat]"); if (eat){ toggleEat(Number(eat.dataset.eat)); return }
     const cal = e.target.closest("[data-cal],[data-month],[data-goday]");
@@ -1028,14 +1097,20 @@ section{gap:14px!important}
         const [c, id] = path.split("/");
         return {
           onSnapshot(fn){ if (path === "info/plan"){ planL.push(fn); fn(planSnap()) } return ()=>{} },
-          async set(data){ local[c] = local[c] || {}; local[c][id] = data; saveLocal(); emit(c) },
+          async set(data){ local[c] = local[c] || {}; local[c][id] = data; saveLocal(); emit(c); if (c === "registros") ghDirty() },
           async update(data){ if (c === "compra"){ local.marcas[id] = Object.assign({}, local.marcas[id], data.marcados); saveLocal(); emit(c) } },
-          async delete(){ local[c] = local[c] || {}; local[c][id] = null; saveLocal(); emit(c) }
+          async delete(){ local[c] = local[c] || {}; local[c][id] = null; saveLocal(); emit(c); if (c === "registros") ghDirty() }
         };
       }
     };
     dbRef = db;
     window.__miDiaLocal = local;
+    // logs coming back from GitHub (new phone / reinstall): fill in what this phone doesn't have
+    mergeRemoteLogs = regs => {
+      let n = 0;
+      Object.entries(regs || {}).forEach(([id, d]) => { if (!(id in local.registros) && !(remote && remote.registros && remote.registros[id])) { local.registros[id] = d; n++ } });
+      if (n){ saveLocal(); emit("registros") }
+    };
     const onErr = () => {};
     const mapCol = (col, fn) => db.collection(col).onSnapshot(snap => { fn(snap.docs.filter(d=>d.exists)); softRender() }, onErr);
     mapCol("dias", docs => { const n = {}; docs.forEach(d => n[d.id] = d.data()); days = n });
@@ -1068,8 +1143,10 @@ section{gap:14px!important}
       }
     }
     refresh();
-    document.addEventListener("visibilitychange", () => { if (document.visibilityState === "visible") refresh() });
-    window.addEventListener("online", refresh);
+    ghPull();
+    if (gh.pending) ghPush();
+    document.addEventListener("visibilitychange", () => { if (document.visibilityState === "visible"){ refresh(); if (gh.pending) ghPush() } else if (gh.pending) ghPush() });
+    window.addEventListener("online", () => { refresh(); if (gh.pending) ghPush() });
     setInterval(refresh, 10*60*1000);
     if ("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js").catch(()=>{});
   })();
