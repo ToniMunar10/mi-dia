@@ -581,7 +581,7 @@ nav.tabs button{font-size:.85rem!important;padding:9px 2px!important}
     else if (tab === "prog") H("Progreso", "Tu peso y tus marcas");
     else H("Informe semanal", "Cada domingo por la noche");
     document.querySelectorAll("nav.tabs button").forEach(b=> b.setAttribute("aria-selected", b.id === "tab-"+tab ? "true":"false"));
-    $("#foot").textContent = plan && plan.actualizado ? "Última actualización de Claude: " + plan.actualizado : "";
+    $("#foot").textContent = (plan && plan.actualizado ? "Plan actualizado: " + plan.actualizado + " · " : "") + "App v6";
   }
   function renderWeek(){
     const el = $("#week"), nav = $("#wnav");
@@ -1287,7 +1287,16 @@ nav.tabs button{font-size:.85rem!important;padding:9px 2px!important}
     document.addEventListener("visibilitychange", () => { if (document.visibilityState === "visible"){ refresh(); ghPull(); fotosPush(); if (gh.pending) ghPush() } else if (gh.pending) ghPush() });
     window.addEventListener("online", () => { refresh(); fotosPush(); if (gh.pending) ghPush() });
     setInterval(refresh, 10*60*1000);
-    if ("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js").catch(()=>{});
+    if ("serviceWorker" in navigator){
+      // when a new version takes over, reload once so it shows straight away
+      let reloaded = false;
+      const hadController = !!navigator.serviceWorker.controller;
+      navigator.serviceWorker.addEventListener("controllerchange", () => { if (hadController && !reloaded){ reloaded = true; location.reload() } });
+      navigator.serviceWorker.register("sw.js", {updateViaCache: "none"}).then(reg => {
+        reg.update().catch(()=>{});
+        document.addEventListener("visibilitychange", () => { if (document.visibilityState === "visible") reg.update().catch(()=>{}) });
+      }).catch(()=>{});
+    }
   })();
 })();
 

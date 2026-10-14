@@ -1,12 +1,15 @@
 // Mi Día — service worker
 // The app shell is cached so the app opens without internet.
 // data.json is always fetched fresh when online and falls back to the last copy offline.
-const SHELL = "mi-dia-shell-v5";
+const SHELL = "mi-dia-shell-v6";
 const DATA = "mi-dia-data";
 const FILES = ["./", "./index.html", "./manifest.webmanifest", "./icons/icon-192.png", "./icons/icon-512.png", "./icons/apple-touch-icon.png"];
 
 self.addEventListener("install", e => {
-  e.waitUntil(caches.open(SHELL).then(c => c.addAll(FILES)).then(() => self.skipWaiting()));
+  // cache: "reload" skips the browser's HTTP cache so a new version never stores an old page
+  e.waitUntil(caches.open(SHELL)
+    .then(c => Promise.all(FILES.map(f => fetch(new Request(f, {cache: "reload"})).then(r => { if (r.ok) return c.put(f, r) }))))
+    .then(() => self.skipWaiting()));
 });
 
 self.addEventListener("activate", e => {
@@ -31,11 +34,16 @@ self.addEventListener("fetch", e => {
     return;
   }
 
-  // app shell: answer from cache at once, refresh it in the background
-  e.respondWith(
-    caches.open(SHELL).then(cache => cache.match(e.request, { ignoreSearch: true }).then(hit => {
-      const net = fetch(e.request).then(res => { if (res.ok) cache.put(e.request, res.clone()); return res }).catch(() => hit);
-      return hit || net;
-    }))
-  );
+  // pages: network first (fresh version when online), cached copy offline
+  if (e.request.mode === "navigate") {
+    e.respondWith(
+      fetch(e.request, { cache: "no-cache" })
+        .then(res => { if (res.ok) { const copy = res.clone(); caches.open(SHELL).then(c => c.put("./", copy)) } return res })
+        .catch(() => caches.open(SHELL).then(c => c.match("./").then(r => r || c.match("./index.html"))))
+    );
+    return;
+  }
+
+  // icons and manifest: cache first
+  e.respondWith(caches.open(SHELL).then(c => c.match(e.request, { ignoreSearch: true }).then(hit => hit || fetch(e.request))));
 });
