@@ -392,6 +392,9 @@ section{gap:14px!important}
 .rstats b{font:700 1.25rem var(--display);color:var(--gym);font-variant-numeric:tabular-nums}
 .rstats small{font-size:.7rem;color:var(--gym);font-weight:700;line-height:1.2}
 .resumen .rh{font:700 .9rem var(--display);margin:12px 0 4px}
+nav.tabs{grid-template-columns:repeat(4,1fr)!important}
+nav.tabs button{font-size:.85rem!important;padding:9px 2px!important}
+.tec .resumen{margin-top:10px}
 .sport{height:.85em;width:auto;vertical-align:-.05em;display:inline-block}
 .ev .k .sport{height:1.05em;vertical-align:-.2em}
 .empty{text-align:center;padding:40px 16px;color:var(--onbg-muted)}
@@ -416,6 +419,7 @@ section{gap:14px!important}
       <button role="tab" id="tab-hoy" aria-selected="true">Hoy</button>
       <button role="tab" id="tab-cal" aria-selected="false">Calendario</button>
       <button role="tab" id="tab-prog" aria-selected="false">Progreso</button>
+      <button role="tab" id="tab-inf" aria-selected="false">Informe</button>
     </nav>
     <div class="wnav" id="wnav"></div>
     <div class="week" id="week"></div>
@@ -452,7 +456,7 @@ section{gap:14px!important}
   /* ---------- state ---------- */
   let days = {}, plan = null, compras = [], recetas = {}, registros = [], partidos = [], tecnica = {}, pesos = [], hechas = {}, futsal = [], dbRef = null;
   let tab = store.get("tab2") || "hoy";
-  if (!["hoy","cal","prog"].includes(tab)) tab = "hoy";
+  if (!["hoy","cal","prog","inf"].includes(tab)) tab = "hoy";
   let sel = null, detail = null;
   let calMonth = todayIso().slice(0,7), calSel = todayIso();
 
@@ -561,7 +565,8 @@ section{gap:14px!important}
       else if (detail.type === "compra"){ const L = compras.find(c => c.id === detail.id); H("Lista de la compra", L ? L.data.titulo : "") }
     } else if (tab === "hoy") H((sel===todayIso()?"Hoy, ":"") + WDL[dt.getDay()] + " " + dt.getDate(), days[sel] && days[sel].titulo ? days[sel].titulo : MES[dt.getMonth()]);
     else if (tab === "cal") H("Calendario", "Turnos, entrenos y partidos");
-    else H("Progreso", "Tu peso y tus marcas");
+    else if (tab === "prog") H("Progreso", "Tu peso y tus marcas");
+    else H("Informe semanal", "Cada domingo por la noche");
     document.querySelectorAll("nav.tabs button").forEach(b=> b.setAttribute("aria-selected", b.id === "tab-"+tab ? "true":"false"));
     $("#foot").textContent = plan && plan.actualizado ? "Última actualización de Claude: " + plan.actualizado : "";
   }
@@ -851,7 +856,7 @@ section{gap:14px!important}
       <p class="tip">Copia tus series, peso y comidas de los últimos 14 días y pégalo en el chat.</p>
       <button class="btn primary big" id="copyClaude" style="margin-top:10px">📋 Copiar para Claude</button><div class="saved" id="copyMsg"></div>
       <textarea id="copyBox" class="copybox" readonly hidden></textarea></div>`;
-    $("#view").innerHTML = `<section>${resumenCard()}${pesoCard}${semCard}${exCard}${ghCard()}${gh.token?"":sendCard}${pend}</section>`;
+    $("#view").innerHTML = `<section>${pesoCard}${semCard}${exCard}${ghCard()}${gh.token?"":sendCard}${pend}</section>`;
   }
   /* ---------- GitHub sync of workout logs ---------- */
   const GH = {owner:"ToniMunar10", repo:"mi-dia", branch:"datos", path:"entrenos.json"};
@@ -920,11 +925,25 @@ section{gap:14px!important}
       <div class="mc" style="display:flex;gap:6px;flex-wrap:wrap">${st}</div>
       <div class="btns" style="margin-top:10px"><button class="btn ghost" id="ghNow">Subir ahora</button><button class="btn ghost" id="ghOff" style="margin-left:auto">Desconectar</button></div></div>`;
   }
-  function resumenCard(){
-    const r = plan && plan.resumenSemanal;
+  function informes(){
+    const list = (plan && plan.informes) ? plan.informes.slice() : [];
+    if (plan && plan.resumenSemanal && !list.some(x => x.semana === plan.resumenSemanal.semana)) list.unshift(plan.resumenSemanal);
+    return list;
+  }
+  function renderInforme(){
+    const list = informes();
+    if (!list.length){
+      $("#view").innerHTML = `<section><div class="empty"><b>🗓️ Tu primer informe llega el domingo</b>Cada domingo a las 22:00 reviso tus entrenos y comidas de la semana y lo dejo aquí.<br><br>Para que salga completo, marca las series con ✓ y las comidas tocando su dibujo.</div></section>`;
+      return;
+    }
+    const [last, ...old] = list;
+    $("#view").innerHTML = `<section>${resumenCard(last)}
+      ${old.length?`<div class="wkhead">Semanas anteriores</div>${old.map(r => `<details class="card tec"><summary><span class="em">🗓️</span><b>${esc(r.semana||"")}</b><span class="go" aria-hidden="true">›</span></summary>${resumenCard(r, true)}</details>`).join("")}`:""}</section>`;
+  }
+  function resumenCard(r, inner){
     if (!r) return "";
     const li = a => (a||[]).map(x => `<li>${esc(x)}</li>`).join("");
-    return `<div class="card resumen"><h2><span><span class="em">🗓️</span> Revisión semanal</span><small>${esc(r.semana||"")}</small></h2>
+    return `<div class="${inner?"":"card "}resumen">${inner?"":`<h2><span><span class="em">🗓️</span> ${esc(r.semana||"Esta semana")}</span></h2>`}
       ${(r.cifras||[]).length?`<div class="rstats">${r.cifras.map(c=>`<div><b>${esc(c.valor)}</b><small>${esc(c.etiqueta)}</small></div>`).join("")}</div>`:""}
       ${(r.bien||[]).length?`<div class="rh">👍 Bien</div><ul class="plain">${li(r.bien)}</ul>`:""}
       ${(r.mejorar||[]).length?`<div class="rh">🎯 A mejorar</div><ul class="plain">${li(r.mejorar)}</ul>`:""}
@@ -973,7 +992,7 @@ section{gap:14px!important}
       else if (detail.type==="ex") renderEx();
       else if (detail.type==="compra") renderCompraDetail();
       else renderMeal();
-    } else if (tab==="cal") renderCal(); else renderProg();
+    } else if (tab==="cal") renderCal(); else if (tab==="prog") renderProg(); else renderInforme();
   }
   function softRender(){
     const a = document.activeElement;
