@@ -395,6 +395,18 @@ section{gap:14px!important}
 nav.tabs{grid-template-columns:repeat(4,1fr)!important}
 nav.tabs button{font-size:.85rem!important;padding:9px 2px!important}
 .tec .resumen{margin-top:10px}
+.fotos .frows{display:grid;margin-bottom:10px}
+.frow{display:grid;grid-template-columns:36px minmax(0,1fr) auto;gap:10px;align-items:center;padding:8px 0;border-top:1px solid var(--line)}
+.frow:first-child{border-top:0}
+.fic{width:36px;height:36px;border-radius:10px;background:var(--food-soft);display:grid;place-items:center;font-size:1.2rem}
+.fdesc{display:block;font-size:.85rem;color:var(--ink);overflow-wrap:anywhere}
+.fmac{display:block;font-size:.75rem;color:var(--muted);font-weight:700;font-variant-numeric:tabular-nums}
+.fst{display:block;font-size:.82rem;color:var(--muted);font-weight:700}
+.pill.fk{background:var(--food-soft);color:var(--food)}
+.fsum{background:var(--food-soft);color:var(--food);border-radius:12px;padding:9px 12px;margin-bottom:8px;font-size:.9rem}
+.fsum b{font:700 1.05rem var(--display)} .fsum small{display:block;font-size:.72rem;font-weight:700}
+.fpick .chips{margin-top:8px}
+.chip.pickc{border:1.5px solid var(--line);background:var(--surface);color:var(--ink);cursor:pointer;font:700 .9rem var(--body);padding:8px 12px}
 .sport{height:.85em;width:auto;vertical-align:-.05em;display:inline-block}
 .ev .k .sport{height:1.05em;vertical-align:-.2em}
 .empty{text-align:center;padding:40px 16px;color:var(--onbg-muted)}
@@ -429,6 +441,7 @@ nav.tabs button{font-size:.85rem!important;padding:9px 2px!important}
   <p class="foot" id="foot"></p>
 </div>
 <div class="rest idle" id="rest" hidden></div>
+<input type="file" id="fotoIn" accept="image/*" capture="environment" hidden>
 <div hidden>
 </div>
 
@@ -650,7 +663,7 @@ nav.tabs button{font-size:.85rem!important;padding:9px 2px!important}
     const notas = (d.notas||[]).length ? `<details class="card tips"><summary><span class="em">💡</span> Consejos <span class="pill">${d.notas.length}</span></summary><ul class="plain" style="margin-top:10px">${d.notas.map(n=>`<li>${esc(n)}</li>`).join("")}</ul></details>` : "";
     $("#view").innerHTML = `<section><div class="tiles">${t1}${t2}${t3}</div>
       <div class="tl">${evHtml || '<p class="tip">Sin horas fijadas.</p>'}</div>
-      ${(d.comidas||[]).length?'<p class="hint">Toca el dibujo de una comida para marcarla como hecha</p>':""}${notas}</section>`;
+      ${(d.comidas||[]).length?'<p class="hint">Toca el dibujo de una comida para marcarla como hecha</p>':""}${fotoCard(d)}${notas}</section>`;
   }
   async function toggleEat(i){
     if (!dbRef) return;
@@ -876,9 +889,93 @@ nav.tabs button{font-size:.85rem!important;padding:9px 2px!important}
     const j = await r.json();
     return {sha:j.sha, data: JSON.parse(unb64(j.content))};
   }
+  /* ---------- meal photos: upload now, analysed at night, then deleted ---------- */
+  const foto = { cola: store.get("mi-dia-fotos-cola") || [], subidas: store.get("mi-dia-fotos-subidas") || [], analisis: store.get("mi-dia-fotos-analisis") || {}, pick: false, comida: null, busy: false, msg: "" };
+  const saveFotos = () => { store.set("mi-dia-fotos-cola", foto.cola); store.set("mi-dia-fotos-subidas", foto.subidas.slice(-80)) };
+  function shrink(file){
+    return new Promise((ok, ko) => {
+      const url = URL.createObjectURL(file), img = new Image();
+      img.onload = () => {
+        const M = 1024, k = Math.min(1, M / Math.max(img.naturalWidth, img.naturalHeight));
+        const c = document.createElement("canvas"); c.width = Math.round(img.naturalWidth*k); c.height = Math.round(img.naturalHeight*k);
+        c.getContext("2d").drawImage(img, 0, 0, c.width, c.height); URL.revokeObjectURL(url);
+        ok(c.toDataURL("image/jpeg", 0.72).split(",")[1]);
+      };
+      img.onerror = () => { URL.revokeObjectURL(url); ko(new Error("No se pudo leer la foto")) };
+      img.src = url;
+    });
+  }
+  async function fotoTomada(file){
+    if (!file) return;
+    foto.msg = "Preparando la foto…"; render();
+    try {
+      const data = await shrink(file), now = new Date();
+      const id = `${sel}_${pad(now.getHours())}${pad(now.getMinutes())}${pad(now.getSeconds())}_${foto.comida == null ? "x" : "m"+foto.comida}`;
+      foto.cola.push({id, fecha:sel, comida:foto.comida, hora:pad(now.getHours())+":"+pad(now.getMinutes()), data});
+      foto.pick = false; foto.msg = ""; saveFotos(); render();
+      fotosPush();
+    } catch(e){ foto.msg = e.message; render() }
+  }
+  async function fotosPush(){
+    if (!gh.token || foto.busy || !navigator.onLine || !foto.cola.length) return;
+    foto.busy = true;
+    try {
+      while (foto.cola.length){
+        const f = foto.cola[0];
+        let r;
+        for (let i = 0; i < 3; i++){
+          r = await ghApi(`contents/fotos/${f.id}.jpg`, {method:"PUT", body:JSON.stringify({message:"Foto " + f.id, branch:GH.branch, content:f.data})});
+          if (r.ok || r.status === 422) break;          // 422: already uploaded
+          if (r.status !== 409) break;
+          await new Promise(z => setTimeout(z, 1200));
+        }
+        if (!r.ok && r.status !== 422) throw new Error(r.status === 401 ? "La clave no es válida" : "No se pudo subir la foto (" + r.status + ")");
+        foto.cola.shift();
+        foto.subidas.push({id:f.id, fecha:f.fecha, comida:f.comida, hora:f.hora});
+        saveFotos(); if (tab === "hoy") softRender();
+      }
+      foto.msg = "";
+    } catch(e){ foto.msg = e.message || "Sin conexión" }
+    foto.busy = false;
+    if (tab === "hoy") softRender();
+  }
+  async function fotosPull(){
+    if (!gh.token || !navigator.onLine) return;
+    try {
+      const r = await ghApi(`contents/comidas_fotos.json?ref=${GH.branch}`, {cache:"no-store"});
+      if (!r.ok) return;
+      const j = await r.json(); const data = JSON.parse(unb64(j.content));
+      foto.analisis = data.fotos || {}; store.set("mi-dia-fotos-analisis", foto.analisis);
+      if (tab === "hoy") softRender();
+    } catch(e){}
+  }
+  function fotoCard(d){
+    const comidas = d.comidas || [];
+    const mine = [...foto.subidas.filter(f => f.fecha === sel), ...foto.cola.filter(f => f.fecha === sel).map(f => Object.assign({}, f, {pend:true}))];
+    Object.entries(foto.analisis).forEach(([id, a]) => { if (a.fecha === sel && !mine.some(m => m.id === id)) mine.push({id, fecha:a.fecha, comida:a.comida, hora:a.hora}) });
+    mine.sort((a,b) => (a.hora||"").localeCompare(b.hora||""));
+    const tot = {kcal:0, p:0, n:0};
+    const rows = mine.map(f => {
+      const a = foto.analisis[f.id], c = f.comida != null ? comidas[f.comida] : null;
+      const name = c ? c.nombre : "Otra comida";
+      const em = c ? ((recetaOf(c)||{}).icono || "🍽️") : "🍽️";
+      if (a){ tot.kcal += Number(a.kcal)||0; tot.p += Number(a.p)||0; tot.n++ }
+      const st = a ? `<span class="fdesc">${esc(a.descripcion||"")}</span><span class="fmac">${a.p!=null?`P ${Math.round(a.p)} g`:""}${a.hc!=null?` · HC ${Math.round(a.hc)} g`:""}${a.g!=null?` · G ${Math.round(a.g)} g`:""}</span>`
+        : f.pend ? `<span class="fst">⏳ Pendiente de subir</span>` : `<span class="fst">🌙 Se analiza esta noche</span>`;
+      return `<div class="frow"><span class="fic em">${a?em:"📷"}</span><div style="min-width:0"><div class="rn">${esc(f.hora||"")} · ${esc(name)}</div>${st}</div>${a&&a.kcal!=null?`<span class="pill fk">${Math.round(a.kcal)}</span>`:"<span></span>"}</div>`;
+    }).join("");
+    const chooser = foto.pick ? `<div class="fpick"><div class="lbl">¿Qué comida es?</div><div class="chips">${comidas.map((c,i)=>`<button class="chip pickc" data-fcomida="${i}"><span class="em">${(recetaOf(c)||{}).icono||"🍽️"}</span> ${esc(c.nombre)}</button>`).join("")}<button class="chip pickc" data-fcomida="x"><span class="em">🍪</span> Otra / picoteo</button></div></div>` : "";
+    const sum = tot.n ? `<div class="fsum"><b>${tot.kcal.toLocaleString("es-ES")}</b> kcal · <b>${Math.round(tot.p)} g</b> prot <small>según ${tot.n} ${tot.n===1?"foto":"fotos"}</small></div>` : "";
+    const noTok = !gh.token ? `<p class="tip">Para subir fotos, conecta antes la app en Progreso → 🔗 Conectar con Claude.</p>` : "";
+    return `<div class="card fotos"><h2><span><span class="em">📷</span> Fotos de comidas</span>${foto.cola.length&&gh.token?`<small>${foto.busy?"Subiendo…":"Sin subir: "+foto.cola.length}</small>`:""}</h2>
+      ${sum}${rows ? `<div class="frows">${rows}</div>` : ""}
+      ${noTok || (foto.pick ? chooser : `<button class="btn primary big food" id="fotoBtn">📷 Añadir foto</button>`)}
+      ${foto.msg?`<div class="saved">${esc(foto.msg)}</div>`:""}</div>`;
+  }
   async function ghPull(){
     if (!gh.token || !navigator.onLine) return;
     try { const {data} = await ghGet(); mergeRemoteLogs(data.registros, data.comidas); gh.err = "" } catch(e){ gh.err = e.message }
+    fotosPull();
     if (tab === "prog") softRender();
   }
   async function ghPush(){
@@ -1072,6 +1169,9 @@ nav.tabs button{font-size:.85rem!important;padding:9px 2px!important}
     if (e.target.closest("#pesoSave")){ savePeso(); return }
     if (e.target.closest("#copyClaude")){ copyForClaude(); return }
     if (e.target.closest("#ghSave")){ ghConnect(); return }
+    if (e.target.closest("#fotoBtn")){ foto.pick = true; render(); return }
+    const fc = e.target.closest("[data-fcomida]");
+    if (fc){ foto.comida = fc.dataset.fcomida === "x" ? null : Number(fc.dataset.fcomida); const fi = $("#fotoIn"); fi.value = ""; fi.click(); return }
     if (e.target.closest("#ghNow")){ gh.pending = true; ghPush(); return }
     if (e.target.closest("#ghOff")){ gh.token = ""; store.set("mi-dia-gh-token", ""); gh.err = ""; render(); return }
     const so = e.target.closest("[data-setok]"); if (so){ toggleSet(Number(so.dataset.setok)); return }
@@ -1099,6 +1199,7 @@ nav.tabs button{font-size:.85rem!important;padding:9px 2px!important}
     const x = e.target;
     if (x.dataset.set !== undefined && detail && detail.draft){ detail.draft[+x.dataset.set][x.dataset.f] = x.value }
   });
+  document.addEventListener("change", e => { if (e.target.id === "fotoIn") fotoTomada(e.target.files && e.target.files[0]) });
   document.addEventListener("keydown", e=>{ if (e.key === "Enter" && e.target.id === "pesoIn") savePeso() });
   document.addEventListener("change", async e=>{
     const x = e.target;
@@ -1182,8 +1283,9 @@ nav.tabs button{font-size:.85rem!important;padding:9px 2px!important}
     refresh();
     ghPull();
     if (gh.pending) ghPush();
-    document.addEventListener("visibilitychange", () => { if (document.visibilityState === "visible"){ refresh(); if (gh.pending) ghPush() } else if (gh.pending) ghPush() });
-    window.addEventListener("online", () => { refresh(); if (gh.pending) ghPush() });
+    fotosPush();
+    document.addEventListener("visibilitychange", () => { if (document.visibilityState === "visible"){ refresh(); ghPull(); fotosPush(); if (gh.pending) ghPush() } else if (gh.pending) ghPush() });
+    window.addEventListener("online", () => { refresh(); fotosPush(); if (gh.pending) ghPush() });
     setInterval(refresh, 10*60*1000);
     if ("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js").catch(()=>{});
   })();
