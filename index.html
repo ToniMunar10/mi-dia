@@ -608,7 +608,7 @@ table.ing tfoot td{border-top-color:var(--ink)}
     if (inDetail){
       const d = days[sel] || {};
       if (detail.type === "gym") H(d.gym.titulo, "", WDL[dt.getDay()]+" "+dt.getDate()+" · "+(d.gym.hora||""));
-      else if (detail.type === "ex"){ const x = d.gym.ejercicios[detail.i]; H(x.nombre, "", d.gym.titulo+" · "+(detail.i+1)+" de "+d.gym.ejercicios.length) }
+      else if (detail.type === "ex"){ const L = gymExs(d), x = L[detail.i]; H(x.nombre, "", d.gym.titulo+" · "+(detail.i+1)+" de "+L.length+(x.orig?" · 🔄 cambiado":"")) }
       else if (detail.type === "meal"){ const c = d.comidas[detail.i]; H(mealTitle(c), "", c.nombre+" · "+c.hora) }
       else if (detail.type === "compra"){ const L = compras.find(c => c.id === detail.id); H("Lista de la compra", "", L ? L.data.titulo : "") }
     } else if (tab === "hoy"){
@@ -626,7 +626,7 @@ table.ing tfoot td{border-top-color:var(--ink)}
     else if (tab === "prog") H("Progreso", "", "Tu peso y tus marcas");
     else H("Informe", "", "Cada domingo por la noche");
     document.querySelectorAll("nav.tabs button").forEach(b=> b.setAttribute("aria-selected", b.id === "tab-"+tab ? "true":"false"));
-    footText = (plan && plan.actualizado ? "Plan actualizado: " + plan.actualizado + " · " : "") + "App v9";
+    footText = (plan && plan.actualizado ? "Plan actualizado: " + plan.actualizado + " · " : "") + "App v10";
   }
   function renderWeek(){
     const el = $("#week"), nav = $("#wnav");
@@ -658,7 +658,7 @@ table.ing tfoot td{border-top-color:var(--ink)}
       icon:`<span class="em">${(recetaOf(c)||{}).icono||"🍽️"}</span>`, lab:c.nombre, n:mealTitle(c), tup:/^Tupper/i.test(c.titulo||""),
       pill: (() => { const rk = realKcal(sel, i); return rk ? "📷 " + Math.round(rk.kcal) : (fotosDe(sel, i).length ? "📷 " : "") + mealKcal(c) })(), open:"meal:"+i}));
     if (d.gym && d.gym.hora){
-      const exs = d.gym.ejercicios||[], done = exs.filter(x => registros.some(r => r.id === sel+"_"+x.id)).length;
+      const exs = gymExs(d), done = exs.filter(x => registros.some(r => r.id === sel+"_"+x.id)).length;
       ev.push({h:d.gym.hora, k:"gym", icon:DUMB, lab:"Gym", n:d.gym.titulo, pill:`${done}/${exs.length}`, gym:true, open:"gym"});
     }
     if (d.trabajo && d.trabajo.inicio) ev.push({h:d.trabajo.inicio, k:"work", icon:LOGO, lab:"SPORT", n:`Hasta las ${d.trabajo.fin||""}`});
@@ -687,7 +687,7 @@ table.ing tfoot td{border-top-color:var(--ink)}
       : `<div class="st"><small>Trabajo</small><b>${/viaje/i.test(w.texto||"") ? "Viaje" : "Libre"}</b></div>`;
     let s2;
     if (d.gym){
-      const exs = d.gym.ejercicios||[], done = exs.filter(x => registros.some(r => r.id === sel+"_"+x.id)).length;
+      const exs = gymExs(d), done = exs.filter(x => registros.some(r => r.id === sel+"_"+x.id)).length;
       s2 = `<button class="st gym" data-open="gym"><small>${DUMB} Entreno</small><b>${done}/${exs.length}</b><span class="bar"><i style="width:${exs.length?Math.round(done/exs.length*100):0}%"></i></span></button>`;
     } else s2 = `<div class="st"><small>Actividad</small><b>${esc((d.actividad||"Descanso").replace(/\s*\(.*?\)/,"").replace(/\s\d{1,2}:\d{2}$/,"").replace("Viaje a Galicia","Galicia"))}</b></div>`;
     const plan_k = (d.comidas||[]).reduce((s,c)=> s + mealKcal(c), 0), eaten = eatenOf(sel);
@@ -722,15 +722,42 @@ table.ing tfoot td{border-top-color:var(--ink)}
   }
 
   /* ---------- GYM ---------- */
+  const swaps = store.get("mi-dia-swaps") || {};
+  const EQ = {"Máquina":"⚙️","Polea":"🪢","Mancuernas":"🏋️","Barra":"➖","Peso corporal":"🤸"};
+  function gymExs(d){
+    return (d.gym.ejercicios||[]).map(x => {
+      const altId = swaps[sel + "_" + x.id];
+      const alt = altId && ((tecnica[x.id]||{}).alternativas||[]).find(a => a.id === altId);
+      if (!alt) return x;
+      const [sr] = String(x.series||"").split(" · ");
+      return {id:alt.id, nombre:alt.nombre, series:sr, nota:"Cambiado por " + x.nombre + ". Empieza ligero y ajusta.", orig:x, alt,
+              tec:{video:alt.video, musculos:(tecnica[x.id]||{}).musculos}};
+    });
+  }
+  function setSwap(orig, altId){
+    const k = sel + "_" + orig;
+    if (altId) swaps[k] = altId; else delete swaps[k];
+    store.set("mi-dia-swaps", swaps);
+    detail.draft = null; detail.msg = ""; detail.swapOpen = false; render();
+  }
+  function swapCard(x){
+    const base = x.orig || x, alts = (tecnica[base.id]||{}).alternativas || [];
+    if (!alts.length) return "";
+    if (!detail.swapOpen) return `<button class="btn ghost big swapb" id="swapOpen">🔄 ${x.orig ? "Cambiar otra vez" : "Ocupado: cambiar ejercicio"}</button>`;
+    return `<div class="card"><h2><span>🔄 Cambiar por</span><button class="btn ghost" id="swapClose" style="min-height:36px;padding:6px 12px">Cerrar</button></h2>
+      <div class="rows">${x.orig?`<button class="row" data-swap=""><span class="num">↺</span><div><div class="rn">${esc(base.nombre)}</div><div class="rl">Volver al original</div></div><span class="go">›</span></button>`:""}
+      ${alts.filter(a => a.id !== x.id).map(a => `<button class="row" data-swap="${esc(a.id)}"><span class="num em">${EQ[a.equipo]||"•"}</span><div style="min-width:0"><div class="rn">${esc(a.nombre)}</div><div class="rl">${esc(a.equipo)}</div></div><span class="go">›</span></button>`).join("")}</div>
+      <p class="tip" style="margin-top:8px">Mismas series y repeticiones. El peso cambia entre máquina, polea y mancuerna: empieza ligero.</p></div>`;
+  }
   function exDone(x){ return registros.find(r => r.id === sel+"_"+x.id) }
   function renderGym(){
-    const d = days[sel], exs = d.gym.ejercicios||[];
+    const d = days[sel], exs = gymExs(d);
     const done = exs.filter(exDone).length;
     const firstOpen = exs.findIndex(x => !exDone(x));
     const rows = exs.map((x,i)=>{
       const t = parseTarget(x), last = logsFor(x.id).find(r => r.data.fecha < sel), lk = last ? topKg(last) : null;
       return `<button class="row ex2 ${exDone(x)?"ok":""}" data-open="ex:${i}"><span class="num">${exDone(x)?"✓":i+1}</span>
-        <div style="min-width:0"><div class="rn">${esc(x.nombre)}</div>
+        <div style="min-width:0"><div class="rn">${x.orig?"🔄 ":""}${esc(x.nombre)}</div>
         <div class="rs"><b>${esc(t.ser)}×${esc(t.reps)}</b>${t.kg?` <span class="kgp">${esc(t.kg)} ${esc(t.unit)}</span>`:""}${last && isFinite(lk)?` <span class="last">↺ ${fmt(lk)} kg</span>`:""}</div></div><span class="go" aria-hidden="true">›</span></button>`;
     }).join("");
     const cta = firstOpen === -1
@@ -753,11 +780,11 @@ table.ing tfoot td{border-top-color:var(--ink)}
     });
   }
   function renderEx(){
-    const d = days[sel], exs = d.gym.ejercicios, x = exs[detail.i];
+    const d = days[sel], exs = gymExs(d), x = exs[detail.i];
     const t = parseTarget(x), logs = logsFor(x.id), prev = logs.find(r => r.data.fecha < sel), lk = prev ? topKg(prev) : null;
     if (!detail.draft) detail.draft = buildDraft(x);
     const draft = detail.draft, allOk = draft.length && draft.every(s => s.ok);
-    const tc = tecnica[x.id];
+    const tc = tecnica[x.id] || x.tec;
     const sets = draft.map((s,k)=>`<div class="set2 ${s.ok?"ok":""}"><span class="sn">${k+1}</span>
       <label><span class="vh">Kg serie ${k+1}</span><input id="kg-${k}" data-set="${k}" data-f="kg" inputmode="decimal" value="${esc(s.kg)}" placeholder="–"></label>
       <label><span class="vh">Reps serie ${k+1}</span><input id="rp-${k}" data-set="${k}" data-f="reps" inputmode="numeric" value="${esc(s.reps)}" placeholder="–"></label>
@@ -780,6 +807,7 @@ table.ing tfoot td{border-top-color:var(--ink)}
         <div class="tline">${prev && isFinite(lk)?`<span class="last2">↺ ${fmt(lk)} kg · ${esc(shortDate(prev.data.fecha))}</span>`:"<span></span>"}
           ${tc && tc.video?`<a class="vidb" href="${esc(tc.video)}" target="_blank" rel="noopener">▶ Vídeo</a>`:""}</div>
         ${x.nota?`<div class="nota"><span class="em">💬</span> ${esc(x.nota)}</div>`:""}</div>
+      ${swapCard(x)}
       <div class="card"><div class="set2 head"><span></span><span>kg</span><span>reps</span><span></span></div>
         <div class="sets">${sets}</div>
         <div class="btns" style="margin-top:10px"><button class="btn ghost" id="addSet">+ Serie</button><span class="saved">${esc(detail.msg||"Pulsa ✓ al acabar cada serie")}</span></div></div>
@@ -796,7 +824,7 @@ table.ing tfoot td{border-top-color:var(--ink)}
     if (tcEl) tcEl.addEventListener("toggle", ()=>{ if (detail) detail.tecOpen = tcEl.open });
   }
   async function toggleSet(k){
-    const d = days[sel], x = d.gym.ejercicios[detail.i], s = detail.draft[k];
+    const d = days[sel], x = gymExs(d)[detail.i], s = detail.draft[k];
     s.ok = !s.ok;
     const series = detail.draft.filter(z => z.ok).map(z => ({kg: num(z.kg), reps: z.reps === "" || z.reps == null ? null : parseInt(z.reps,10)}));
     if (s.ok){
@@ -1254,6 +1282,10 @@ table.ing tfoot td{border-top-color:var(--ink)}
     if (e.target.closest("#pesoSave")){ savePeso(); return }
     if (e.target.closest("#copyClaude")){ copyForClaude(); return }
     if (e.target.closest("#ghSave")){ ghConnect(); return }
+    if (e.target.closest("#swapOpen")){ detail.swapOpen = true; render(); return }
+    if (e.target.closest("#swapClose")){ detail.swapOpen = false; render(); return }
+    const sw = e.target.closest("[data-swap]");
+    if (sw && detail && detail.type === "ex"){ const cur = gymExs(days[sel])[detail.i]; setSwap((cur.orig||cur).id, sw.dataset.swap); return }
     if (e.target.closest("#fotoBtn")){ foto.pick = true; render(); return }
     const fc = e.target.closest("[data-fcomida]");
     if (fc){ foto.comida = fc.dataset.fcomida === "x" ? null : Number(fc.dataset.fcomida); const fi = $("#fotoIn"); fi.value = ""; fi.click(); return }
