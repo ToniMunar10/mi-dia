@@ -444,6 +444,17 @@ nav.tabs button[aria-selected="true"]{color:var(--brand-strong)}
 table.ing tfoot td{border-top-color:var(--ink)}
 .copybox,.pin input,.set2 input{background:var(--paper);color:var(--ink);border-color:var(--line)}
 .set2 input:focus,.pin input:focus{border-color:var(--brand)}
+/* crests: fixed square box so Safari never stretches them */
+img.crest{flex:none;object-fit:contain;aspect-ratio:auto}
+.crest{width:1.3em;height:1.3em}
+.crests .crest{width:22px;height:22px}
+.crests .crest + .crest{width:18px;height:18px}
+.match .mv .crest{width:22px;height:22px}
+.cell .cd{height:18px;min-height:0;flex-wrap:nowrap;overflow:hidden;justify-content:center;max-width:100%}
+.cell .cd .crest{width:15px;height:15px}
+.cell .cd > *{flex:none}
+.cell .ccr{display:inline-flex;align-items:center}
+.cell .ccr .crest + .crest{margin-left:-5px}
 .card.strong{display:flex;gap:12px;align-items:center}
 .card.strong .em{font-size:26px}.card.strong b{display:block;font-size:16px}.card.strong small{display:block;color:var(--muted,#5b6170);font-size:14px;line-height:1.35;margin-top:2px}
 </style>
@@ -550,9 +561,8 @@ table.ing tfoot td{border-top-color:var(--ink)}
   }
   function cellIcons(iso, tms){
     const act = shiftOf(iso).cls === "s-viaje" ? [] : dayIcon(days[iso], iso).match(/<span class="(?:em )?mini[^"]*">.*?<\/span>(?:<\/span>)?/g) || [];
-    const icons = [...act.slice(0,1), ...tms.map(crest)];
-    const extra = icons.length > 2 ? `<span class="more">+${icons.length-2}</span>` : "";
-    return icons.slice(0, extra ? 1 : 2).join("") + extra;
+    const cr = tms.slice(0,2).map(crest).join("");
+    return act.slice(0,1).join("") + (cr ? `<span class="ccr">${cr}</span>` : "");
   }
   function futRow(f){
     return `<div class="match"><div class="mt">${esc(f.hora)}</div><div style="min-width:0"><div class="mv"><span class="em">⚽</span>SPORT – ${esc(f.rival)}</div>
@@ -628,7 +638,7 @@ table.ing tfoot td{border-top-color:var(--ink)}
     else if (tab === "prog") H("Progreso", "", "Tu peso y tus marcas");
     else H("Informe", "", "Cada domingo por la noche");
     document.querySelectorAll("nav.tabs button").forEach(b=> b.setAttribute("aria-selected", b.id === "tab-"+tab ? "true":"false"));
-    footText = (plan && plan.actualizado ? "Plan actualizado: " + plan.actualizado + " · " : "") + "App v12";
+    footText = (plan && plan.actualizado ? "Plan actualizado: " + plan.actualizado + " · " : "") + "App v13";
   }
   function renderWeek(){
     const el = $("#week"), nav = $("#wnav");
