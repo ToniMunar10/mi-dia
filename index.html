@@ -4,10 +4,11 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>Mi Día</title>
-<meta name="theme-color" content="#B95F36">
+<meta name="theme-color" content="#F4F5F7" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#0F1115" media="(prefers-color-scheme: dark)">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="apple-mobile-web-app-title" content="Mi Día">
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
@@ -364,6 +365,85 @@ body.detail h1{font-size:1.875rem;line-height:1.02;display:-webkit-box;-webkit-l
 .cell.sel{border-color:var(--ink)}
 .rstats b{font-size:1.5rem;white-space:nowrap}
 .st b{font-size:1.5rem}
+
+/* ---------- palette v9: neutral canvas, one energetic accent, category colours (light + dark) ---------- */
+:root{
+  --canvas:#F4F5F7; --paper:#FFFFFF; --panel:#F4F5F7; --line:#E4E6EB; --ink:#14161A; --muted:#667085;
+  --brand:#FF5A1F; --brand-strong:#D2440C; --brand-soft:#FFE9DF; --btn-bg:#D2440C; --btn-ink:#FFFFFF;
+  --gym:#D2440C; --gym-soft:#FFE9DF;
+  --food:#08795A; --food-soft:#DDF5EC; --on-food:#FFFFFF;
+  --rest:#08795A; --rest-soft:#DDF5EC;
+  --work:#4F46E5; --work-soft:#EAE8FD;
+  --sport:#0369A1; --sport-soft:#E0F2FE;
+  --pink:#9D174D; --pink-soft:#FCE7F3;
+  --warn:#92400E; --warn-soft:#FEF3C7;
+  --bar:#14161A; --on-bar:#FFFFFF; --on-bar-2:#C9CDD4; --tabbg:rgba(255,255,255,.92); --shadow:0 -6px 20px rgba(16,24,40,.06);
+  /* header now sits on the neutral canvas */
+  --on-brand:var(--ink); --on-brand-2:var(--muted); --on-brand-3:#E7E9EE; --hi:var(--brand-strong);
+}
+@media (prefers-color-scheme:dark){:root{
+  --canvas:#0F1115; --paper:#171A20; --panel:#1F232B; --line:#2B303A; --ink:#F3F4F6; --muted:#9CA3AF;
+  --brand:#FF6A33; --brand-strong:#FF8355; --brand-soft:#3A1F14; --btn-bg:#FF6A33; --btn-ink:#1A0B04;
+  --gym:#FF8355; --gym-soft:#3A1F14;
+  --food:#34D399; --food-soft:#0F332A; --on-food:#04261B;
+  --rest:#34D399; --rest-soft:#0F332A;
+  --work:#A5B4FC; --work-soft:#25294D;
+  --sport:#7DD3FC; --sport-soft:#0C2D40;
+  --pink:#F9A8D4; --pink-soft:#3A1A2D;
+  --warn:#FCD34D; --warn-soft:#3A2E0D;
+  --on-brand-3:#262A33;
+  --bar:#262A33; --on-bar:#F3F4F6; --on-bar-2:#9CA3AF; --tabbg:rgba(23,26,32,.92); --shadow:0 -6px 20px rgba(0,0,0,.4);
+  color-scheme:dark;
+}}
+html,body{background:var(--canvas)}
+.sheet{background:var(--paper);box-shadow:var(--shadow)}
+.dot.on{background:var(--food)}
+.week button.today .dn{color:var(--brand-strong)}
+.week button.sel{background:var(--btn-bg);color:var(--btn-ink)}
+.week button.sel .wd{color:var(--btn-ink);opacity:.8}
+.week button.sel.today .dn{color:var(--btn-ink)}
+.week .mk{background:var(--muted)!important}
+.week button.sel .mk{background:var(--btn-ink)!important}
+.week button.past{opacity:.5}
+.back{background:var(--on-brand-3);color:var(--ink)}
+.wnav button{background:var(--on-brand-3);color:var(--ink)}
+:focus-visible{outline-color:var(--brand)}
+.btn.primary{background:var(--btn-bg);color:var(--btn-ink)}
+.btn.primary.food{background:var(--food);color:var(--on-food)}
+.btn.ghost{background:var(--panel);color:var(--brand-strong)}
+.card .btn.ghost,.card .cpill,.stats > div,.pvr > div,.rstats > div,.fic,.mnav button,.set2 .sn,.row .num,.wdot i{background:var(--paper)}
+.now{background:var(--btn-bg);color:var(--btn-ink)}
+.slot.next .t{color:var(--brand-strong)}
+.slot.next .node{border-color:var(--brand)}
+.slot.other .node{background:var(--sport-soft)}
+.slot.eaten .node{background:var(--food);color:var(--on-food)}
+.st .bar i{background:var(--food)} .st.gym .bar i,.gprog .prog i{background:var(--brand)}
+.st small .ico{color:var(--brand)}
+.chip.rest{background:var(--sport-soft);color:var(--sport)}
+.vidb{background:var(--bar);color:var(--on-bar)}
+.rest{background:var(--bar);color:var(--on-bar)}
+.rest .lbl,.rtime .lbl{color:var(--on-bar-2)}
+.rbtns button{background:rgba(127,127,127,.22);color:var(--on-bar)}
+.rbtns button.on{background:var(--on-bar);color:var(--bar)}
+.rbtns button.start{background:var(--btn-bg);color:var(--btn-ink)}
+.rest.go{background:var(--food);color:var(--on-food)}
+.rprog i{background:var(--brand)}
+nav.tabs{background:var(--tabbg);border-top-color:var(--line)}
+nav.tabs button[aria-selected="true"]{color:var(--brand-strong)}
+.cell.today .cn{background:var(--btn-bg);color:var(--btn-ink)}
+.s-noche{--cell:var(--work-soft);--cellink:var(--work)} .s-tarde{--cell:var(--pink-soft);--cellink:var(--pink)}
+.s-medio{--cell:var(--warn-soft);--cellink:var(--warn)} .s-libre{--cell:var(--food-soft);--cellink:var(--food)}
+.s-viaje{--cell:var(--sport-soft);--cellink:var(--sport)} .s-nada{--cell:var(--paper);--cellink:var(--muted)}
+.legend i{background:var(--cell)}
+.wdot.ok i,.row.ok .num,.set2.ok .okb,.set2.ok .sn{background:var(--food);color:var(--on-food);border-color:var(--food)}
+.set2.ok input{background:var(--food-soft);color:var(--food)}
+.okb{color:var(--line)}
+.done-banner{background:var(--food-soft);color:var(--food)}
+.shop label input{border-color:var(--food)}
+.shop label input:checked{background-color:var(--food)}
+table.ing tfoot td{border-top-color:var(--ink)}
+.copybox,.pin input,.set2 input{background:var(--paper);color:var(--ink);border-color:var(--line)}
+.set2 input:focus,.pin input:focus{border-color:var(--brand)}
 </style>
 </head>
 <body>
@@ -546,7 +626,7 @@ body.detail h1{font-size:1.875rem;line-height:1.02;display:-webkit-box;-webkit-l
     else if (tab === "prog") H("Progreso", "", "Tu peso y tus marcas");
     else H("Informe", "", "Cada domingo por la noche");
     document.querySelectorAll("nav.tabs button").forEach(b=> b.setAttribute("aria-selected", b.id === "tab-"+tab ? "true":"false"));
-    footText = (plan && plan.actualizado ? "Plan actualizado: " + plan.actualizado + " · " : "") + "App v8";
+    footText = (plan && plan.actualizado ? "Plan actualizado: " + plan.actualizado + " · " : "") + "App v9";
   }
   function renderWeek(){
     const el = $("#week"), nav = $("#wnav");
@@ -791,7 +871,7 @@ body.detail h1{font-size:1.875rem;line-height:1.02;display:-webkit-box;-webkit-l
       <div class="card calcard">
         <div class="mnav"><button data-month="-1" aria-label="Mes anterior">‹</button><b>${MES[m-1]} ${y}</b><button data-month="1" aria-label="Mes siguiente">›</button></div>
         <div class="cal">${cells}</div>
-        <div class="legend"><span><i style="background:#ECE3F8"></i>18h–01h</span><span><i style="background:#FBE1EA"></i>16h–23h</span><span><i style="background:#FFF1C2"></i>12h–20h</span><span><i style="background:#E1F1E9"></i>Libre</span><span><i style="background:#DDEBF7"></i>Viaje</span></div>
+        <div class="legend"><span><i class="s-noche"></i>18h–01h</span><span><i class="s-tarde"></i>16h–23h</span><span><i class="s-medio"></i>12h–20h</span><span><i class="s-libre"></i>Libre</span><span><i class="s-viaje"></i>Viaje</span></div>
       </div>
       <div class="card"><h2>${WDL[dSel.getDay()]} ${dSel.getDate()} de ${MES[dSel.getMonth()]}</h2>
         ${chips.length?`<div class="chips">${chips.join("")}</div>`:""}
