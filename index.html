@@ -663,7 +663,7 @@ img.crest{flex:none;object-fit:contain;aspect-ratio:auto}
     else if (tab === "prog") H("Progreso", "", "Tu peso y tus marcas");
     else H("Informe", "", "Cada domingo por la noche");
     document.querySelectorAll("nav.tabs button").forEach(b=> b.setAttribute("aria-selected", b.id === "tab-"+tab ? "true":"false"));
-    footText = (plan && plan.actualizado ? "Plan actualizado: " + plan.actualizado + " · " : "") + "App v15";
+    footText = (plan && plan.actualizado ? "Plan actualizado: " + plan.actualizado + " · " : "") + "App v16";
   }
   function renderWeek(){
     const el = $("#week"), nav = $("#wnav");
@@ -691,9 +691,9 @@ img.crest{flex:none;object-fit:contain;aspect-ratio:auto}
   /* ---------- HOY ---------- */
   function timelineOf(d){
     const ev = [], eaten = eatenOf(sel);
-    (d.comidas||[]).forEach((c,i) => ev.push({h:c.hora, k:"food", meal:i, eaten:!!eaten[i],
-      icon:`<span class="em">${(recetaOf(c)||{}).icono||"🍽️"}</span>`, lab:c.nombre, n:mealTitle(c), tup:/^Tupper/i.test(c.titulo||""),
-      pill: (() => { const rk = realKcal(sel, i); return rk ? "📷 " + Math.round(rk.kcal) : (fotosDe(sel, i).length ? "📷 " : "") + mealKcal(c) })(), open:"meal:"+i}));
+    (d.comidas||[]).forEach((c,i) => { const fsI = fotosDe(sel, i), realD = (fsI.find(f => f.a && f.a.descripcion && f.a.kcal != null)||{}).a; ev.push({h:c.hora, k:"food", meal:i, eaten:!!eaten[i] || fsI.length > 0,
+      icon:`<span class="em">${(recetaOf(c)||{}).icono||"🍽️"}</span>`, lab:c.nombre, n:realD ? realD.descripcion : mealTitle(c), tup:!realD && /^Tupper/i.test(c.titulo||""),
+      pill: (() => { const rk = realKcal(sel, i); return rk ? "📷 " + Math.round(rk.kcal) : (fotosDe(sel, i).length ? "📷 " : "") + mealKcal(c) })(), open:"meal:"+i}) });
     if (d.gym && d.gym.hora){
       const exs = gymExs(d), done = exs.filter(x => registros.some(r => r.id === sel+"_"+x.id)).length;
       ev.push({h:d.gym.hora, k:"gym", icon:DUMB, lab:"Gym", n:d.gym.titulo, pill:`${done}/${exs.length}`, gym:true, open:"gym"});
@@ -728,7 +728,7 @@ img.crest{flex:none;object-fit:contain;aspect-ratio:auto}
       s2 = `<button class="st gym" data-open="gym"><small>${DUMB} Entreno</small><b>${done}/${exs.length}</b><span class="bar"><i style="width:${exs.length?Math.round(done/exs.length*100):0}%"></i></span></button>`;
     } else s2 = `<div class="st"><small>Actividad</small><b>${esc((d.actividad||"Descanso").replace(/\s*\(.*?\)/,"").replace(/\s\d{1,2}:\d{2}$/,"").replace("Viaje a Galicia","Galicia"))}</b></div>`;
     const plan_k = (d.comidas||[]).reduce((s,c)=> s + mealKcal(c), 0), eaten = eatenOf(sel);
-    const eat_k = (d.comidas||[]).reduce((s,c,i)=> { const rk = realKcal(sel, i); return s + (eaten[i] ? (rk ? rk.kcal : mealKcal(c)) : 0) }, 0)
+    const eat_k = (d.comidas||[]).reduce((s,c,i)=> { const rk = realKcal(sel, i); return s + (rk ? rk.kcal : eaten[i] || fotosDe(sel, i).length ? mealKcal(c) : 0) }, 0)
       + fotosDe(sel, null).reduce((s,f)=> s + (f.a && f.a.kcal != null ? Number(f.a.kcal) : 0), 0);
     const s3 = plan_k ? `<div class="st"><small>kcal ${eat_k?"de "+plan_k.toLocaleString("es-ES"):"previstas"}</small><b>${(eat_k||plan_k).toLocaleString("es-ES")}</b><span class="bar"><i style="width:${Math.min(100,Math.round(eat_k/plan_k*100))}%"></i></span></div>`
       : `<div class="st"><small>Comidas</small><b>Libre</b></div>`;
@@ -866,12 +866,12 @@ img.crest{flex:none;object-fit:contain;aspect-ratio:auto}
 
   /* ---------- MEAL ---------- */
   function renderMeal(){
-    const d = days[sel], c = d.comidas[detail.i], r = recetaOf(c), eaten = !!eatenOf(sel)[detail.i];
+    const d = days[sel], c = d.comidas[detail.i], r = recetaOf(c), eaten = !!eatenOf(sel)[detail.i] || fotosDe(sel, detail.i).length > 0;
     let body;
     if (r){
       const t = totals(r);
       const rows = r.ingredientes.map(i=>`<tr><td>${esc(i.n)}</td><td class="g">${esc(i.g)}</td><td class="kc">${Math.round(i.kcal)}</td><td class="p">${fmt(i.p)} g</td></tr>`).join("");
-      body = `<div class="card"><h2><span><span class="em">${r.icono||"🍽️"}</span> Ingredientes</span> <small>en crudo</small></h2>
+      body = `<div class="card"><h2><span><span class="em">${r.icono||"🍽️"}</span> Recomendado</span> <small>en crudo</small></h2>
         <div style="overflow-x:auto"><table class="ing"><thead><tr><th></th><th></th><th>kcal</th><th>prot</th></tr></thead>
         <tbody>${rows}</tbody><tfoot><tr><td>Total</td><td></td><td class="kc">${Math.round(t.kcal)}</td><td class="p">${Math.round(t.p)} g</td></tr></tfoot></table></div></div>
         ${r.pasos&&r.pasos.length?`<details class="card tec"><summary><span class="em">👨‍🍳</span><b>Cómo hacerlo</b><span class="go" aria-hidden="true">›</span></summary><ol class="plain" style="margin-top:10px;padding-left:20px">${r.pasos.map(p=>`<li>${esc(p)}</li>`).join("")}</ol></details>`:""}`;
@@ -1064,7 +1064,7 @@ img.crest{flex:none;object-fit:contain;aspect-ratio:auto}
   function platoCard(i){
     const c = days[sel].comidas[i], r = recetaOf(c), plan = r ? totals(r) : {kcal:Number(c.kcal)||0, p:0};
     const fs = fotosDe(sel, i), real = realKcal(sel, i);
-    const cmp = `<div class="pvr"><div><small>Plan</small><b>${Math.round(plan.kcal)}</b><small>kcal · ${Math.round(plan.p)} g prot</small></div>
+    const cmp = `<div class="pvr"><div><small>Recomendado</small><b>${Math.round(plan.kcal)}</b><small>kcal · ${Math.round(plan.p)} g prot</small></div>
         ${real ? `<div class="${real.kcal > plan.kcal*1.15 ? "up" : real.kcal < plan.kcal*0.85 ? "down" : "ok"}"><small>Real</small><b>${Math.round(real.kcal)}</b><small>kcal · ${Math.round(real.p)} g prot</small></div>`
           : `<div class="nores"><small>Real</small><b>—</b><small>${fs.length ? "esta noche" : "haz una foto"}</small></div>`}</div>`;
     const list = fs.map(f => f.a
@@ -1074,7 +1074,7 @@ img.crest{flex:none;object-fit:contain;aspect-ratio:auto}
     const btn = !gh.token ? `<p class="tip">Para subir fotos, conecta antes la app en Progreso → 🔗 Conectar con Claude.</p>`
       : `<button class="btn ${fs.length?"ghost":"primary food"} big" data-fcomida="${i}">📷 ${fs.length?"Añadir otra foto":"Hacer foto del plato"}</button>`;
     return `<div class="card plato"><h2><span><span class="em">📷</span> Tu plato</span>${foto.cola.length&&foto.busy?"<small>Subiendo…</small>":""}</h2>
-      ${cmp}${list?`<div class="frows">${list}</div>`:'<p class="tip">Haz una foto de lo que te vas a comer y esta noche te digo cuánto has comido de verdad.</p>'}
+      ${cmp}${list?`<div class="frows">${list}</div>`:'<p class="tip">Es una recomendación. Comas esto u otra cosa, hazle una foto y esta noche te digo lo que has comido de verdad.</p>'}
       ${btn}${foto.msg?`<div class="saved">${esc(foto.msg)}</div>`:""}</div>`;
   }
   // only snacks outside the plan stay on the day screen
