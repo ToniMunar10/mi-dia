@@ -638,7 +638,7 @@ img.crest{flex:none;object-fit:contain;aspect-ratio:auto}
     else if (tab === "prog") H("Progreso", "", "Tu peso y tus marcas");
     else H("Informe", "", "Cada domingo por la noche");
     document.querySelectorAll("nav.tabs button").forEach(b=> b.setAttribute("aria-selected", b.id === "tab-"+tab ? "true":"false"));
-    footText = (plan && plan.actualizado ? "Plan actualizado: " + plan.actualizado + " · " : "") + "App v13";
+    footText = (plan && plan.actualizado ? "Plan actualizado: " + plan.actualizado + " · " : "") + "App v14";
   }
   function renderWeek(){
     const el = $("#week"), nav = $("#wnav");
@@ -1212,47 +1212,12 @@ img.crest{flex:none;object-fit:contain;aspect-ratio:auto}
 
   /* ---------- rest timer ---------- */
   const rest = { end: null, total: 0, pref: (store.get("restPref") || 90), done: 0, ctx: null, lock: null };
-  try { const saved = store.get("restEnd"); if (saved && saved.end > Date.now()){ rest.end = saved.end; rest.total = saved.total } } catch(e){}
+  try { store.set("restEnd", null) } catch(e){}
   const mmss = s => Math.floor(s/60)+":"+pad(Math.max(0,s)%60);
-  /* bell: a real <audio> element (plays as media, so the iPhone silent switch doesn't mute it),
-     unlocked on the first tap, plus Web Audio as a backup */
-  function bellWav(){
-    const sr = 22050, dur = 2.6, n = Math.floor(sr*dur), data = new Float32Array(n);
-    const strike = (t0, f) => { for (let i = Math.floor(t0*sr); i < n; i++){ const t = i/sr - t0, e = Math.exp(-t*3.2);
-      data[i] += e*(0.55*Math.sin(2*Math.PI*f*t) + 0.25*Math.sin(2*Math.PI*f*2.76*t)*Math.exp(-t*6) + 0.15*Math.sin(2*Math.PI*f*5.4*t)*Math.exp(-t*9)) } };
-    strike(0, 1318.5); strike(0.42, 987.8); strike(0.84, 1318.5);   // ding-dong-ding
-    let peak = 0; for (const v of data) peak = Math.max(peak, Math.abs(v));
-    const buf = new ArrayBuffer(44 + n*2), v = new DataView(buf), w = (o, str) => [...str].forEach((c,i) => v.setUint8(o+i, c.charCodeAt(0)));
-    w(0,"RIFF"); v.setUint32(4, 36+n*2, true); w(8,"WAVE"); w(12,"fmt "); v.setUint32(16,16,true); v.setUint16(20,1,true); v.setUint16(22,1,true);
-    v.setUint32(24,sr,true); v.setUint32(28,sr*2,true); v.setUint16(32,2,true); v.setUint16(34,16,true); w(36,"data"); v.setUint32(40,n*2,true);
-    for (let i = 0; i < n; i++) v.setInt16(44+i*2, Math.max(-1, Math.min(1, data[i]/peak*0.95))*32767, true);
-    return URL.createObjectURL(new Blob([buf], {type:"audio/wav"}));
-  }
-  function audioReady(){
-    try { if (navigator.audioSession) navigator.audioSession.type = "playback" } catch(e){}
-    try {
-      if (!rest.bell){ rest.bell = new Audio(bellWav()); rest.bell.preload = "auto"; rest.bell.setAttribute("playsinline", "") }
-      if (!rest.unlocked){ const b = rest.bell; b.muted = true; const pr = b.play(); if (pr) pr.then(() => { b.pause(); b.currentTime = 0; b.muted = false; rest.unlocked = true }).catch(() => { b.muted = false }) }
-    } catch(e){}
-    try { rest.ctx = rest.ctx || new (window.AudioContext || window.webkitAudioContext)(); if (rest.ctx.state === "suspended") rest.ctx.resume() } catch(e){}
-  }
-  function tick(){
-    try { const c = rest.ctx; if (!c) return; const o = c.createOscillator(), g = c.createGain(); o.frequency.value = 1046; o.type = "triangle";
-      g.gain.setValueAtTime(.0001, c.currentTime); g.gain.exponentialRampToValueAtTime(.25, c.currentTime+.01); g.gain.exponentialRampToValueAtTime(.0001, c.currentTime+.12);
-      o.connect(g).connect(c.destination); o.start(); o.stop(c.currentTime+.15) } catch(e){}
-  }
-  function beep(){
-    let played = false;
-    try { if (rest.bell){ rest.bell.muted = false; rest.bell.currentTime = 0; const pr = rest.bell.play(); played = true; if (pr) pr.catch(fallback) } } catch(e){ played = false }
-    if (!played) fallback();
-    function fallback(){
-      try { const c = rest.ctx; if (!c) return;
-        [[0,1318.5],[.42,987.8],[.84,1318.5]].forEach(([t,f]) => { const o = c.createOscillator(), g = c.createGain(); o.frequency.value = f; o.type = "sine";
-          g.gain.setValueAtTime(.0001, c.currentTime+t); g.gain.exponentialRampToValueAtTime(.7, c.currentTime+t+.01); g.gain.exponentialRampToValueAtTime(.0001, c.currentTime+t+1.2);
-          o.connect(g).connect(c.destination); o.start(c.currentTime+t); o.stop(c.currentTime+t+1.3) }) } catch(e){}
-    }
-    try { navigator.vibrate && navigator.vibrate([300,120,300,120,300]) } catch(e){}
-  }
+  /* no sounds: the app stays silent and never touches the phone's audio */
+  function audioReady(){}
+  function tick(){}
+  function beep(){}
   async function keepAwake(on){
     try {
       if (on && !rest.lock && navigator.wakeLock) rest.lock = await navigator.wakeLock.request("screen");
@@ -1290,7 +1255,6 @@ img.crest{flex:none;object-fit:contain;aspect-ratio:auto}
   }, 250);
 
   /* ---------- events ---------- */
-  document.addEventListener("pointerdown", () => { if (!rest.unlocked) audioReady() }, {passive:true});
   document.addEventListener("click", e=>{
     const b = e.target.closest("[data-rest],[data-rest-set]");
     if (!b) return;
