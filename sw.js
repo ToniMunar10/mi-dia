@@ -1,7 +1,7 @@
 // Mi Día — service worker
 // The app shell is cached so the app opens without internet.
 // data.json is always fetched fresh when online and falls back to the last copy offline.
-const SHELL = "mi-dia-shell-v6";
+const SHELL = "mi-dia-shell-v8";
 const DATA = "mi-dia-data";
 const FILES = ["./", "./index.html", "./manifest.webmanifest", "./icons/icon-192.png", "./icons/icon-512.png", "./icons/apple-touch-icon.png"];
 
