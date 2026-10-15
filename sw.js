@@ -1,8 +1,9 @@
 // Mi Día — service worker
 // The app shell is cached so the app opens without internet.
 // data.json is always fetched fresh when online and falls back to the last copy offline.
-const SHELL = "mi-dia-shell-v14";
+const SHELL = "mi-dia-shell-v15";
 const DATA = "mi-dia-data";
+const CRESTS = "mi-dia-crests";
 const FILES = ["./", "./index.html", "./manifest.webmanifest", "./icons/icon-192.png", "./icons/icon-512.png", "./icons/apple-touch-icon.png"];
 
 self.addEventListener("install", e => {
@@ -14,7 +15,7 @@ self.addEventListener("install", e => {
 
 self.addEventListener("activate", e => {
   e.waitUntil(caches.keys()
-    .then(keys => Promise.all(keys.filter(k => k !== SHELL && k !== DATA).map(k => caches.delete(k))))
+    .then(keys => Promise.all(keys.filter(k => k !== SHELL && k !== DATA && k !== CRESTS).map(k => caches.delete(k))))
     .then(() => self.clients.claim()));
 });
 
@@ -41,6 +42,12 @@ self.addEventListener("fetch", e => {
         .then(res => { if (res.ok) { const copy = res.clone(); caches.open(SHELL).then(c => c.put("./", copy)) } return res })
         .catch(() => caches.open(SHELL).then(c => c.match("./").then(r => r || c.match("./index.html"))))
     );
+    return;
+  }
+
+  // team crests: cache first, stored the first time they are seen
+  if (url.pathname.includes("/icons/escudos/")) {
+    e.respondWith(caches.open(CRESTS).then(c => c.match(e.request).then(hit => hit || fetch(e.request).then(res => { if (res.ok) c.put(e.request, res.clone()); return res }))));
     return;
   }
 
