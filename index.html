@@ -444,6 +444,8 @@ nav.tabs button[aria-selected="true"]{color:var(--brand-strong)}
 table.ing tfoot td{border-top-color:var(--ink)}
 .copybox,.pin input,.set2 input{background:var(--paper);color:var(--ink);border-color:var(--line)}
 .set2 input:focus,.pin input:focus{border-color:var(--brand)}
+.card.strong{display:flex;gap:12px;align-items:center}
+.card.strong .em{font-size:26px}.card.strong b{display:block;font-size:16px}.card.strong small{display:block;color:var(--muted,#5b6170);font-size:14px;line-height:1.35;margin-top:2px}
 </style>
 </head>
 <body>
@@ -626,7 +628,7 @@ table.ing tfoot td{border-top-color:var(--ink)}
     else if (tab === "prog") H("Progreso", "", "Tu peso y tus marcas");
     else H("Informe", "", "Cada domingo por la noche");
     document.querySelectorAll("nav.tabs button").forEach(b=> b.setAttribute("aria-selected", b.id === "tab-"+tab ? "true":"false"));
-    footText = (plan && plan.actualizado ? "Plan actualizado: " + plan.actualizado + " · " : "") + "App v11";
+    footText = (plan && plan.actualizado ? "Plan actualizado: " + plan.actualizado + " · " : "") + "App v12";
   }
   function renderWeek(){
     const el = $("#week"), nav = $("#wnav");
@@ -758,14 +760,14 @@ table.ing tfoot td{border-top-color:var(--ink)}
       const t = parseTarget(x), last = logsFor(x.id).find(r => r.data.fecha < sel), lk = last ? topKg(last) : null;
       return `<button class="row ex2 ${exDone(x)?"ok":""}" data-open="ex:${i}"><span class="num">${exDone(x)?"✓":i+1}</span>
         <div style="min-width:0"><div class="rn">${x.orig?"🔄 ":""}${esc(x.nombre)}</div>
-        <div class="rs"><b>${esc(t.ser)}×${esc(t.reps)}</b>${t.kg?` <span class="kgp">${esc(t.kg)} ${esc(t.unit)}</span>`:""}${last && isFinite(lk)?` <span class="last">↺ ${fmt(lk)} kg</span>`:""}</div></div><span class="go" aria-hidden="true">›</span></button>`;
+        <div class="rs">${exDone(x) ? `<b>${esc((exDone(x).data.series||[]).map(s => `${fmt(num(s.kg))}×${s.reps ?? "?"}`).join("  "))}</b>` : `<b>${esc(t.ser)}×${esc(t.reps)}</b>${t.kg?` <span class="kgp">${esc(t.kg)} ${esc(t.unit)}</span>`:""}${last && isFinite(lk)?` <span class="last">↺ ${fmt(lk)} kg</span>`:""}`}</div></div><span class="go" aria-hidden="true">›</span></button>`;
     }).join("");
-    const cta = firstOpen === -1
-      ? `<div class="done-banner"><span class="em">🏆</span> Entreno completado</div>`
-      : `<button class="btn primary big" data-open="ex:${firstOpen}">${done?"▶ Continuar":"▶ Empezar entreno"}</button>`;
+    const cta = done
+      ? `<div class="done-banner"><span class="em">🏆</span> Entreno analizado · ${done}/${exs.length} ejercicios</div>`
+      : `<div class="card strong"><span class="em">📋</span><div><b>Entrena con Strong</b><small>Al acabar, copia el entreno y pégamelo en el chat. Yo lo analizo y lo verás aquí.</small></div></div>`;
     $("#view").innerHTML = `<section>${cta}
       <div class="card"><div class="gprog"><span>${DUMB}</span><div class="prog"><i style="width:${exs.length?Math.round(done/exs.length*100):0}%"></i></div><b>${done}/${exs.length}</b></div><div class="rows">${rows}</div></div>
-      <div class="rules"><span><span class="em">🔁</span>2-3 reps en la recámara</span><span><span class="em">⏱️</span>1:30-2:00 de descanso</span><span><span class="em">🔥</span>5 min de calentamiento</span></div></section>`;
+      <div class="rules"><span><span class="em">🔁</span>1-3 reps en la recámara</span><span><span class="em">⏱️</span>2-3 min básicos · 1:30 resto</span><span><span class="em">🔥</span>5 min de calentamiento</span></div></section>`;
   }
 
   function buildDraft(x){
@@ -782,13 +784,7 @@ table.ing tfoot td{border-top-color:var(--ink)}
   function renderEx(){
     const d = days[sel], exs = gymExs(d), x = exs[detail.i];
     const t = parseTarget(x), logs = logsFor(x.id), prev = logs.find(r => r.data.fecha < sel), lk = prev ? topKg(prev) : null;
-    if (!detail.draft) detail.draft = buildDraft(x);
-    const draft = detail.draft, allOk = draft.length && draft.every(s => s.ok);
     const tc = tecnica[x.id] || x.tec;
-    const sets = draft.map((s,k)=>`<div class="set2 ${s.ok?"ok":""}"><span class="sn">${k+1}</span>
-      <label><span class="vh">Kg serie ${k+1}</span><input id="kg-${k}" data-set="${k}" data-f="kg" inputmode="decimal" value="${esc(s.kg)}" placeholder="–"></label>
-      <label><span class="vh">Reps serie ${k+1}</span><input id="rp-${k}" data-set="${k}" data-f="reps" inputmode="numeric" value="${esc(s.reps)}" placeholder="–"></label>
-      <button class="okb" data-setok="${k}" aria-pressed="${s.ok}" aria-label="Serie ${k+1} ${s.ok?"hecha":"por hacer"}">✓</button></div>`).join("");
     const hist = logs.map((r,k)=>{
       const older = logs[k+1]; let delta = "";
       if (older){ const a = topKg(r), b = topKg(older); if (isFinite(a) && isFinite(b)){ const df = a-b; delta = `<span class="delta ${df>0?"up":df<0?"down":"eq"}">${df>0?"+":""}${fmt(df)} kg</span>` } }
@@ -797,9 +793,6 @@ table.ing tfoot td{border-top-color:var(--ink)}
     }).join("");
     const vals = logs.slice().reverse().map(topKg).filter(isFinite);
     const nextI = detail.i + 1 < exs.length ? detail.i + 1 : -1;
-    const finish = allOk ? (nextI !== -1
-        ? `<button class="btn primary big" data-open="ex:${nextI}">Siguiente: ${esc(exs[nextI].nombre)} ›</button>`
-        : `<button class="btn primary big" data-open="gym">🏁 Terminar entreno</button>`) : "";
     $("#view").innerHTML = `<section>
       <div class="card target2">
         <div class="stats"><div><b>${esc(t.ser||"—")}</b><small>series</small></div><div><b>${esc(t.reps)}</b><small>reps</small></div>
@@ -808,17 +801,13 @@ table.ing tfoot td{border-top-color:var(--ink)}
           ${tc && tc.video?`<a class="vidb" href="${esc(tc.video)}" target="_blank" rel="noopener">▶ Vídeo</a>`:""}</div>
         ${x.nota?`<div class="nota"><span class="em">💬</span> ${esc(x.nota)}</div>`:""}</div>
       ${swapCard(x)}
-      <div class="card"><div class="set2 head"><span></span><span>kg</span><span>reps</span><span></span></div>
-        <div class="sets">${sets}</div>
-        <div class="btns" style="margin-top:10px"><button class="btn ghost" id="addSet">+ Serie</button><span class="saved">${esc(detail.msg||"Pulsa ✓ al acabar cada serie")}</span></div></div>
-      ${finish}
       ${tc?`<details class="card tec" ${detail.tecOpen?"open":""}><summary><span class="em">📖</span><b>Técnica</b><span class="go" aria-hidden="true">›</span></summary>
         ${tc.musculos?`<div class="musc"><span class="em">💪</span> ${esc(tc.musculos)}</div>`:""}
         <ol class="plain" style="padding-left:20px;margin-top:10px">${(tc.pasos||[]).map(p=>`<li>${esc(p)}</li>`).join("")}</ol>
         ${(tc.errores||[]).length?`<ul class="plain bad" style="margin-top:10px">${tc.errores.map(p=>`<li>${esc(p)}</li>`).join("")}</ul>`:""}</details>`:""}
       <div class="card"><h2><span><span class="em">📈</span> Historial</span> ${vals.length>1?sparkSvg(vals,110,28,"var(--gym)"):""}</h2>
         <div class="hist">${hist || '<p class="tip">Aún vacío.</p>'}</div></div>
-      <div class="btns">${detail.i>0?`<button class="btn ghost" data-open="ex:${detail.i-1}">‹ Anterior</button>`:""}${nextI!==-1&&!allOk?`<button class="btn ghost" data-open="ex:${nextI}" style="margin-left:auto">Saltar ›</button>`:""}</div>
+      <div class="btns">${detail.i>0?`<button class="btn ghost" data-open="ex:${detail.i-1}">‹ Anterior</button>`:""}${nextI!==-1?`<button class="btn ghost" data-open="ex:${nextI}" style="margin-left:auto">Siguiente ›</button>`:""}</div>
     </section>`;
     const tcEl = document.querySelector("details.tec");
     if (tcEl) tcEl.addEventListener("toggle", ()=>{ if (detail) detail.tecOpen = tcEl.open });
@@ -1264,7 +1253,7 @@ table.ing tfoot td{border-top-color:var(--ink)}
   function stopRest(){ rest.end = null; store.set("restEnd", null); keepAwake(false); drawRest() }
   function drawRest(){
     const bar = $("#rest");
-    const show = tab === "hoy" && detail && (detail.type === "gym" || detail.type === "ex");
+    const show = false; // the rest timer lives in Strong now
     bar.hidden = !show && !rest.end;
     document.body.classList.toggle("has-rest", !bar.hidden);
     if (bar.hidden) return;
