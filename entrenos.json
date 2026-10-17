@@ -1,0 +1,223 @@
+{
+ "actualizado": "2026-10-17T19:31:45.050Z",
+ "registros": {
+  "2026-10-09_press-inclinado-manc": {
+   "ejercicio": "press-inclinado-manc",
+   "fecha": "2026-10-09",
+   "nombre": "Press inclinado con mancuernas",
+   "nota": "Del calendario de la semana 1: solo el peso, sin repeticiones.",
+   "series": [
+    {
+     "kg": 8,
+     "reps": null
+    },
+    {
+     "kg": 8,
+     "reps": null
+    }
+   ]
+  },
+  "2026-10-09_press-militar-manc": {
+   "ejercicio": "press-militar-manc",
+   "fecha": "2026-10-09",
+   "nombre": "Press militar con mancuernas sentado",
+   "nota": "Del calendario de la semana 1: solo el peso, sin repeticiones.",
+   "series": [
+    {
+     "kg": 6,
+     "reps": null
+    },
+    {
+     "kg": 6,
+     "reps": null
+    }
+   ]
+  },
+  "2026-10-09_triceps-polea": {
+   "ejercicio": "triceps-polea",
+   "fecha": "2026-10-09",
+   "nombre": "Extensión de tríceps en polea",
+   "nota": "Del calendario de la semana 1: solo el peso, sin repeticiones.",
+   "series": [
+    {
+     "kg": 12.5,
+     "reps": null
+    },
+    {
+     "kg": 12.5,
+     "reps": null
+    }
+   ]
+  },
+  "2026-10-10_curl-biceps-manc": {
+   "ejercicio": "curl-biceps-manc",
+   "fecha": "2026-10-10",
+   "nombre": "Curl de bíceps con mancuernas",
+   "nota": "Del calendario de la semana 1: solo el peso, sin repeticiones.",
+   "series": [
+    {
+     "kg": 8,
+     "reps": null
+    },
+    {
+     "kg": 8,
+     "reps": null
+    }
+   ]
+  },
+  "2026-10-10_jalon-pecho": {
+   "ejercicio": "jalon-pecho",
+   "fecha": "2026-10-10",
+   "nombre": "Jalón al pecho agarre abierto",
+   "nota": "Del calendario de la semana 1: solo el peso, sin repeticiones.",
+   "series": [
+    {
+     "kg": 32.5,
+     "reps": null
+    },
+    {
+     "kg": 32.5,
+     "reps": null
+    }
+   ]
+  },
+  "2026-10-10_remo-maquina": {
+   "ejercicio": "remo-maquina",
+   "fecha": "2026-10-10",
+   "nombre": "Remo en máquina",
+   "nota": "Del calendario de la semana 1: solo el peso, sin repeticiones.",
+   "series": [
+    {
+     "kg": 28,
+     "reps": null
+    },
+    {
+     "kg": 28,
+     "reps": null
+    }
+   ]
+  },
+  "2026-10-15_remo-polea-v": {
+   "fecha": "2026-10-15",
+   "ejercicio": "remo-polea-v",
+   "nombre": "Remo en polea agarre en V",
+   "series": [
+    {
+     "kg": 26,
+     "reps": 10
+    },
+    {
+     "kg": 26,
+     "reps": 10
+    },
+    {
+     "kg": 26,
+     "reps": 10
+    }
+   ]
+  },
+  "2026-10-15_alt-remo-technogym-discos": {
+   "fecha": "2026-10-15",
+   "ejercicio": "alt-remo-technogym-discos",
+   "nombre": "Remo en máquina de discos (Technogym Row)",
+   "series": [
+    {
+     "kg": 30,
+     "reps": 12
+    },
+    {
+     "kg": 30,
+     "reps": 12
+    },
+    {
+     "kg": 30,
+     "reps": 10
+    }
+   ]
+  },
+  "2026-10-15_alt-jalon-en-maquina-convergente": {
+   "fecha": "2026-10-15",
+   "ejercicio": "alt-jalon-en-maquina-convergente",
+   "nombre": "Jalón en máquina convergente",
+   "series": [
+    {
+     "kg": 30,
+     "reps": 9
+    },
+    {
+     "kg": 30,
+     "reps": 8
+    },
+    {
+     "kg": 30,
+     "reps": 9
+    }
+   ]
+  },
+  "2026-10-15_curl-barra-z": {
+   "fecha": "2026-10-15",
+   "ejercicio": "curl-barra-z",
+   "nombre": "Curl con barra Z",
+   "series": [
+    {
+     "kg": 15,
+     "reps": 8
+    },
+    {
+     "kg": 15,
+     "reps": 9
+    },
+    {
+     "kg": 15,
+     "reps": 5
+    }
+   ]
+  },
+  "2026-10-15_curl-martillo": {
+   "fecha": "2026-10-15",
+   "ejercicio": "curl-martillo",
+   "nombre": "Curl martillo",
+   "series": [
+    {
+     "kg": 8,
+     "reps": 9
+    },
+    {
+     "kg": 8,
+     "reps": 10
+    },
+    {
+     "kg": 8,
+     "reps": 9
+    }
+   ]
+  }
+ },
+ "comidas": {
+  "2026-10-14": {
+   "meals": {
+    "0": true,
+    "1": true,
+    "3": true
+   }
+  },
+  "2026-10-15": {
+   "meals": {
+    "1": true,
+    "3": true
+   }
+  },
+  "2026-10-16": {
+   "meals": {
+    "0": true,
+    "3": true
+   }
+  },
+  "2026-10-17": {
+   "meals": {
+    "1": true,
+    "3": true
+   }
+  }
+ }
+}

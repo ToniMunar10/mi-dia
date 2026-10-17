@@ -1,0 +1,113 @@
+{
+ "fotos": {
+  "2026-10-14_215500_m3": {
+   "fecha": "2026-10-14",
+   "hora": "21:55",
+   "comida": 3,
+   "descripcion": "Arroz blanco (~250 g cocido) con 2 contramuslos a la plancha (~170 g) y un yogur 0% de limón",
+   "kcal": 760,
+   "p": 50,
+   "hc": 81,
+   "g": 25,
+   "plan_kcal": 840,
+   "nota": "Falta el puré de verduras; el yogur compensa parte"
+  },
+  "2026-10-15_161502_m1": {
+   "fecha": "2026-10-15",
+   "hora": "16:15",
+   "comida": 1,
+   "descripcion": "Merluza con arroz y canónigos (~430 g)",
+   "kcal": 475,
+   "p": 48,
+   "hc": 52,
+   "g": 8,
+   "plan_kcal": 699,
+   "nota": "Arroz en vez de patata y sin pan: ~−220 kcal"
+  },
+  "2026-10-15_163430_x": {
+   "fecha": "2026-10-15",
+   "hora": "16:34",
+   "comida": null,
+   "descripcion": "Mandarina (~110 g)",
+   "kcal": 50,
+   "p": 1,
+   "hc": 12,
+   "g": 0,
+   "plan_kcal": null,
+   "nota": ""
+  },
+  "2026-10-15_213051_m3": {
+   "fecha": "2026-10-15",
+   "hora": "21:30",
+   "comida": 3,
+   "descripcion": "Ñoquis boloñesa con queso (~420 g)",
+   "kcal": 720,
+   "p": 39,
+   "hc": 80,
+   "g": 28,
+   "plan_kcal": 647,
+   "nota": "Otra cena: ~+75 kcal y −9 g de proteína que la tortilla"
+  },
+  "2026-10-16_153000_m1_sinfoto": {
+   "fecha": "2026-10-16",
+   "hora": "15:30",
+   "comida": 1,
+   "descripcion": "2 mini pizzas prosciutto Casa Tarradellas",
+   "kcal": 640,
+   "p": 34,
+   "hc": 72,
+   "g": 22,
+   "plan_kcal": 702,
+   "nota": "Sin foto, estimado. ~−60 kcal y −15 g de proteína que el arroz con ternera"
+  },
+  "2026-10-16_103729_m0": {
+   "fecha": "2026-10-16",
+   "hora": "10:37",
+   "comida": 0,
+   "descripcion": "Bocadillo de jamón y queso (~160 g)",
+   "kcal": 375,
+   "p": 20,
+   "hc": 56,
+   "g": 8,
+   "plan_kcal": 592,
+   "nota": "Otro desayuno: ~−215 kcal y −14 g de proteína"
+  },
+  "2026-10-16_225349_m3": {
+   "fecha": "2026-10-16",
+   "hora": "22:53",
+   "comida": 3,
+   "descripcion": "Filete, huevo, croquetas y fritas (~500 g)",
+   "kcal": 1000,
+   "p": 56,
+   "hc": 77,
+   "g": 52,
+   "plan_kcal": 753,
+   "nota": "Otra cena: ~+250 kcal, misma proteína que la pasta con pollo"
+  },
+  "2026-10-17_145348_m1": {
+   "fecha": "2026-10-17",
+   "hora": "14:53",
+   "comida": 1,
+   "descripcion": "Macarrones boloñesa (~400 g)",
+   "kcal": 700,
+   "p": 40,
+   "hc": 82,
+   "g": 22,
+   "plan_kcal": 766,
+   "nota": "Otra comida: ~−65 kcal y −7 g de proteína que el arroz con contramuslos"
+  },
+  "2026-10-17_213140_m3": {
+   "fecha": "2026-10-17",
+   "hora": "21:31",
+   "comida": 3,
+   "descripcion": "Contramuslos con patata cocida (~480 g)",
+   "kcal": 600,
+   "p": 50,
+   "hc": 58,
+   "g": 18,
+   "plan_kcal": 790,
+   "nota": "Otra cena: ~−190 kcal y +5 g de proteína que la boloñesa"
+  }
+ },
+ "actualizado": "2026-10-17T21:41:01+00:00"
+}
