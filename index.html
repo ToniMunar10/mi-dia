@@ -358,7 +358,7 @@ body.detail h1{font-size:1.875rem;line-height:1.02;display:-webkit-box;-webkit-l
 .cal{gap:3px}
 .cell{min-height:74px;padding:5px 1px 6px;border-radius:10px}
 .cell .cs{font-size:1rem;max-width:100%;overflow:hidden;text-overflow:clip}
-.cell.s-libre .cs,.cell.s-viaje .cs{font-size:.875rem}
+.cell.s-libre .cs,.cell.s-viaje .cs,.cell.s-vac .cs{font-size:.875rem}
 .cell .cn{justify-self:center;padding:0;width:22px;height:22px;display:grid;place-items:center;border-radius:50%}
 .cell.today{box-shadow:none}
 .cell.today .cn{background:var(--brand);color:#fff}
@@ -433,7 +433,9 @@ nav.tabs button[aria-selected="true"]{color:var(--brand-strong)}
 .cell.today .cn{background:var(--btn-bg);color:var(--btn-ink)}
 .s-noche{--cell:var(--work-soft);--cellink:var(--work)} .s-tarde{--cell:var(--pink-soft);--cellink:var(--pink)}
 .s-medio{--cell:var(--warn-soft);--cellink:var(--warn)} .s-libre{--cell:var(--food-soft);--cellink:var(--food)}
-.s-viaje{--cell:var(--sport-soft);--cellink:var(--sport)} .s-nada{--cell:var(--paper);--cellink:var(--muted)}
+.s-viaje{--cell:var(--sport-soft);--cellink:var(--sport)}
+.s-vac{--cell:#FFE1D2;--cellink:#9A3412}
+@media (prefers-color-scheme: dark){.s-vac{--cell:#3B2219;--cellink:#FDBA8C}} .s-nada{--cell:var(--paper);--cellink:var(--muted)}
 .legend i{background:var(--cell)}
 .wdot.ok i,.row.ok .num,.set2.ok .okb,.set2.ok .sn{background:var(--food);color:var(--on-food);border-color:var(--food)}
 .set2.ok input{background:var(--food-soft);color:var(--food)}
@@ -606,10 +608,11 @@ img.crest{flex:none;object-fit:contain;aspect-ratio:auto}
       return {cls, txt:`${+t.inicio.slice(0,2)}h`, label:`${t.inicio}–${t.fin}`, ini:mins(t.inicio), fin:mins(t.fin)};
     }
     if (/viaje/i.test(t.texto||"")) return {cls:"s-viaje", txt:"✈️", label:"De viaje"};
+    if (/vacaciones/i.test(t.texto||"")) return {cls:"s-vac", txt:"🏖️", label:"Vacaciones"};
     return {cls:"s-libre", txt:"Libre", label:"Libre"};
   }
   function clash(p, sh){
-    if (!p.hora || sh.ini == null) return sh.cls==="s-viaje" ? "✈️ De viaje" : sh.cls==="s-libre" ? "🟢 Puedes verlo" : "";
+    if (!p.hora || sh.ini == null) return sh.cls==="s-viaje" ? "✈️ De viaje" : (sh.cls==="s-libre"||sh.cls==="s-vac") ? "🟢 Puedes verlo" : "";
     let s = sh.ini, e = sh.fin; if (e <= s) e += 1440;
     const m = mins(p.hora);
     if (m >= s && m < e) return "🔴 Trabajando";
@@ -663,7 +666,7 @@ img.crest{flex:none;object-fit:contain;aspect-ratio:auto}
     else if (tab === "prog") H("Progreso", "", "Tu peso y tus marcas");
     else H("Informe", "", "Cada domingo por la noche");
     document.querySelectorAll("nav.tabs button").forEach(b=> b.setAttribute("aria-selected", b.id === "tab-"+tab ? "true":"false"));
-    footText = (plan && plan.actualizado ? "Plan actualizado: " + plan.actualizado + " · " : "") + "App v16";
+    footText = (plan && plan.actualizado ? "Plan actualizado: " + plan.actualizado + " · " : "") + "App v17";
   }
   function renderWeek(){
     const el = $("#week"), nav = $("#wnav");
@@ -923,7 +926,7 @@ img.crest{flex:none;object-fit:contain;aspect-ratio:auto}
       <div class="card calcard">
         <div class="mnav"><button data-month="-1" aria-label="Mes anterior">‹</button><b>${MES[m-1]} ${y}</b><button data-month="1" aria-label="Mes siguiente">›</button></div>
         <div class="cal">${cells}</div>
-        <div class="legend"><span><i class="s-noche"></i>18h–01h</span><span><i class="s-tarde"></i>16h–23h</span><span><i class="s-medio"></i>12h–20h</span><span><i class="s-libre"></i>Libre</span><span><i class="s-viaje"></i>Viaje</span></div>
+        <div class="legend"><span><i class="s-noche"></i>18h–01h</span><span><i class="s-tarde"></i>16h–23h</span><span><i class="s-medio"></i>12h–20h</span><span><i class="s-libre"></i>Libre</span><span><i class="s-viaje"></i>Viaje</span><span><i class="s-vac"></i>Vacaciones</span></div>
       </div>
       <div class="card"><h2>${WDL[dSel.getDay()]} ${dSel.getDate()} de ${MES[dSel.getMonth()]}</h2>
         ${chips.length?`<div class="chips">${chips.join("")}</div>`:""}
